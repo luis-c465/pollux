@@ -6,7 +6,6 @@ import {
 	ComposerPrimitive,
 	ErrorPrimitive,
 	MessagePrimitive,
-	SuggestionPrimitive,
 	ThreadPrimitive,
 	useAuiState,
 } from "@assistant-ui/react";
@@ -33,6 +32,7 @@ import { MarkdownText } from "#/components/assistant-ui/markdown-text";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "#/components/assistant-ui/tooltip-icon-button";
 import { Button } from "#/components/ui/button";
+import { useSettings } from "#/lib/settings";
 import { cn } from "#/lib/utils";
 
 export const Thread: FC = () => {
@@ -89,16 +89,23 @@ const ThreadScrollToBottom: FC = () => {
 };
 
 const ThreadWelcome: FC = () => {
+	const { hasApiKey } = useSettings();
+
 	return (
 		<div className="aui-thread-welcome-root mx-auto my-auto flex w-full max-w-(--thread-max-width) grow flex-col">
 			<div className="aui-thread-welcome-center flex w-full grow flex-col items-center justify-center">
 				<div className="aui-thread-welcome-message flex size-full flex-col justify-center px-4">
 					<h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-2xl duration-200">
-						Hello there!
+						Welcome to GChat
 					</h1>
 					<p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-xl delay-75 duration-200">
-						How can I help you today?
+						Start chatting with Gemini, or set up your API key in Settings.
 					</p>
+					{!hasApiKey ? (
+						<p className="mt-2 text-amber-700 text-sm dark:text-amber-300">
+							To get started, add your Gemini API key from the sidebar settings.
+						</p>
+					) : null}
 				</div>
 			</div>
 			<ThreadSuggestions />
@@ -106,28 +113,36 @@ const ThreadWelcome: FC = () => {
 	);
 };
 
+const STARTER_PROMPTS = [
+	"Explain quantum computing in simple terms",
+	"Write a Python function to sort a list",
+	"What are the benefits of TypeScript?",
+	"Help me draft a professional project update email",
+] as const;
+
 const ThreadSuggestions: FC = () => {
 	return (
 		<div className="aui-thread-welcome-suggestions grid w-full @md:grid-cols-2 gap-2 pb-4">
-			<ThreadPrimitive.Suggestions>
-				{() => <ThreadSuggestionItem />}
-			</ThreadPrimitive.Suggestions>
+			{STARTER_PROMPTS.map((prompt) => (
+				<ThreadSuggestionItem key={prompt} prompt={prompt} />
+			))}
 		</div>
 	);
 };
 
-const ThreadSuggestionItem: FC = () => {
+const ThreadSuggestionItem: FC<{ prompt: string }> = ({ prompt }) => {
 	return (
 		<div className="aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 @md:nth-[n+3]:block nth-[n+3]:hidden animate-in fill-mode-both duration-200">
-			<SuggestionPrimitive.Trigger send asChild>
+			<ThreadPrimitive.Suggestion prompt={prompt} send asChild>
 				<Button
 					variant="ghost"
 					className="aui-thread-welcome-suggestion h-auto w-full @md:flex-col flex-wrap items-start justify-start gap-1 rounded-3xl border bg-background px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
 				>
-					<SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1 font-medium" />
-					<SuggestionPrimitive.Description className="aui-thread-welcome-suggestion-text-2 text-muted-foreground empty:hidden" />
+					<span className="aui-thread-welcome-suggestion-text-1 font-medium">
+						{prompt}
+					</span>
 				</Button>
-			</SuggestionPrimitive.Trigger>
+			</ThreadPrimitive.Suggestion>
 		</div>
 	);
 };

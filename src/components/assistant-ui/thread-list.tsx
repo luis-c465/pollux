@@ -4,20 +4,14 @@ import {
 	ThreadListItemPrimitive,
 	ThreadListPrimitive,
 } from "@assistant-ui/react";
-import {
-	ArchiveIcon,
-	MoreHorizontalIcon,
-	PlusIcon,
-	TrashIcon,
-} from "lucide-react";
+import { ArchiveIcon, MoreHorizontalIcon, TrashIcon } from "lucide-react";
 import type { FC } from "react";
 import { Button } from "#/components/ui/button";
 import { Skeleton } from "#/components/ui/skeleton";
 
 export const ThreadList: FC = () => {
 	return (
-		<ThreadListPrimitive.Root className="aui-root aui-thread-list-root flex flex-col gap-1">
-			<ThreadListNew />
+		<ThreadListPrimitive.Root className="aui-root aui-thread-list-root flex h-full min-h-0 flex-col gap-1">
 			<AuiIf condition={(s) => s.threads.isLoading}>
 				<ThreadListSkeleton />
 			</AuiIf>
@@ -27,20 +21,6 @@ export const ThreadList: FC = () => {
 				</ThreadListPrimitive.Items>
 			</AuiIf>
 		</ThreadListPrimitive.Root>
-	);
-};
-
-const ThreadListNew: FC = () => {
-	return (
-		<ThreadListPrimitive.New asChild>
-			<Button
-				variant="outline"
-				className="aui-thread-list-new h-9 justify-start gap-2 rounded-lg px-3 text-sm hover:bg-muted data-active:bg-muted"
-			>
-				<PlusIcon className="size-4" />
-				New Thread
-			</Button>
-		</ThreadListPrimitive.New>
 	);
 };
 
@@ -54,7 +34,7 @@ const ThreadListSkeleton: FC = () => {
 	] as const;
 
 	return (
-		<div className="flex flex-col gap-1">
+		<div className="flex flex-col gap-1 px-1">
 			{skeletonIds.map((id) => (
 				<output
 					key={id}
@@ -70,8 +50,8 @@ const ThreadListSkeleton: FC = () => {
 
 const ThreadListItem: FC = () => {
 	return (
-		<ThreadListItemPrimitive.Root className="aui-thread-list-item group flex h-9 items-center gap-2 rounded-lg transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none data-active:bg-muted">
-			<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-full min-w-0 flex-1 items-center px-3 text-start text-sm">
+		<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 items-center gap-2 rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
+			<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-full min-w-0 flex-1 items-center px-3 text-sidebar-foreground text-start text-sm">
 				<span className="aui-thread-list-item-title min-w-0 flex-1 truncate">
 					<ThreadListItemPrimitive.Title fallback="New Chat" />
 				</span>
