@@ -3,7 +3,8 @@ import {
 	useLocalRuntime,
 	useRemoteThreadListRuntime,
 } from "@assistant-ui/react";
-import type { PropsWithChildren } from "react";
+import { Loader2Icon } from "lucide-react";
+import { type PropsWithChildren, useEffect, useState } from "react";
 import { compositeAttachmentAdapter } from "#/lib/attachment-adapter";
 import { geminiAdapter } from "#/lib/gemini-adapter";
 import { useSettings } from "#/lib/settings";
@@ -32,11 +33,26 @@ export function GChatRuntimeProvider({ children }: PropsWithChildren) {
 		adapter: threadListAdapter,
 	});
 	const settings = useSettings();
+	const [isInitializing, setIsInitializing] = useState(true);
+
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			setIsInitializing(false);
+		}, 250);
+
+		return () => window.clearTimeout(timer);
+	}, []);
 
 	return (
 		<AssistantRuntimeProvider runtime={runtime}>
+			{isInitializing ? (
+				<div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+					<Loader2Icon className="mr-2 size-4 animate-spin" />
+					Loading your local chat history…
+				</div>
+			) : null}
 			{!settings.hasApiKey ? <MissingApiKeyNotice /> : null}
-			{children}
+			{isInitializing ? null : children}
 		</AssistantRuntimeProvider>
 	);
 }

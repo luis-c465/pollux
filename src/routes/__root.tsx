@@ -22,11 +22,45 @@ export const Route = createRootRoute({
 			{
 				title: "GChat",
 			},
+			{
+				name: "description",
+				content:
+					"Chat with Google Gemini models. Privacy-first — all conversations stored locally.",
+			},
+			{
+				name: "theme-color",
+				content: "#111827",
+			},
+			{
+				property: "og:title",
+				content: "GChat",
+			},
+			{
+				property: "og:description",
+				content:
+					"Chat with Google Gemini models. Privacy-first — all conversations stored locally.",
+			},
+			{
+				property: "og:type",
+				content: "website",
+			},
+			{
+				property: "og:image",
+				content: "/logo512.png",
+			},
 		],
 		links: [
 			{
 				rel: "stylesheet",
 				href: appCss,
+			},
+			{
+				rel: "manifest",
+				href: "/manifest.json",
+			},
+			{
+				rel: "icon",
+				href: "/favicon.ico",
 			},
 		],
 	}),

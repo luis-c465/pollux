@@ -2,10 +2,11 @@ import {
 	ExternalLinkIcon,
 	EyeIcon,
 	EyeOffIcon,
+	InfoIcon,
 	SettingsIcon,
 	Trash2Icon,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Dialog,
@@ -35,6 +36,13 @@ import {
 	useSettings,
 } from "#/lib/settings";
 import { cn } from "#/lib/utils";
+
+const SETTINGS_OPEN_EVENT = "gchat-open-settings-dialog";
+
+export function openSettingsDialog() {
+	if (typeof window === "undefined") return;
+	window.dispatchEvent(new CustomEvent(SETTINGS_OPEN_EVENT));
+}
 
 export function SettingsDialog() {
 	const settings = useSettings();
@@ -112,6 +120,18 @@ export function SettingsDialog() {
 		setSystemPromptInput("");
 		setSystemPrompt("");
 	}
+
+	const apiKeyLooksUnusual =
+		apiKeyInput.trim().length > 0 &&
+		(!apiKeyInput.trim().startsWith("AI") || apiKeyInput.trim().length < 30);
+
+	useEffect(() => {
+		const handleOpenRequest = () => handleOpenChange(true);
+		window.addEventListener(SETTINGS_OPEN_EVENT, handleOpenRequest);
+		return () => {
+			window.removeEventListener(SETTINGS_OPEN_EVENT, handleOpenRequest);
+		};
+	}, [handleOpenChange]);
 
 	// -------------------------------------------------------------------------
 	// Render
@@ -219,6 +239,15 @@ export function SettingsDialog() {
 								<ExternalLinkIcon className="size-3 ml-0.5" />
 							</a>
 						</p>
+						{apiKeyLooksUnusual ? (
+							<p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-amber-700 text-xs dark:text-amber-300">
+								<InfoIcon className="mt-0.5 size-3.5 shrink-0" />
+								<span>
+									This key format looks unusual. Gemini keys usually start with
+									"AI...".
+								</span>
+							</p>
+						) : null}
 					</section>
 
 					{/* ------------------------------------------------------------------ */}

@@ -12,6 +12,9 @@ import { setSelectedModel, useSettings } from "#/lib/settings";
 
 function ModelSelector() {
 	const settings = useSettings();
+	const selectedModel =
+		GEMINI_MODELS.find((model) => model.id === settings.selectedModel) ??
+		GEMINI_MODELS[0];
 
 	return (
 		<Select
@@ -19,7 +22,9 @@ function ModelSelector() {
 			onValueChange={(value) => setSelectedModel(value)}
 		>
 			<SelectTrigger className="h-8 w-[220px]">
-				<SelectValue placeholder="Select model" />
+				<SelectValue placeholder={selectedModel?.name}>
+					{selectedModel?.name}
+				</SelectValue>
 			</SelectTrigger>
 			<SelectContent>
 				{GEMINI_MODELS.map((model) => (

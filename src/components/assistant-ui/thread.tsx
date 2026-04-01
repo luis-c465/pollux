@@ -31,6 +31,7 @@ import {
 import { MarkdownText } from "#/components/assistant-ui/markdown-text";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "#/components/assistant-ui/tooltip-icon-button";
+import { openSettingsDialog } from "#/components/settings-dialog";
 import { Button } from "#/components/ui/button";
 import { useSettings } from "#/lib/settings";
 import { cn } from "#/lib/utils";
@@ -99,12 +100,18 @@ const ThreadWelcome: FC = () => {
 						Welcome to GChat
 					</h1>
 					<p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-xl delay-75 duration-200">
-						Start chatting with Gemini, or set up your API key in Settings.
+						Chat with Google Gemini models. Your conversations are stored
+						locally and never leave your browser.
 					</p>
 					{!hasApiKey ? (
-						<p className="mt-2 text-amber-700 text-sm dark:text-amber-300">
-							To get started, add your Gemini API key from the sidebar settings.
-						</p>
+						<div className="mt-3 flex items-center gap-3">
+							<p className="text-amber-700 text-sm dark:text-amber-300">
+								To get started, set your Gemini API key in Settings.
+							</p>
+							<Button size="sm" variant="outline" onClick={openSettingsDialog}>
+								Open Settings
+							</Button>
+						</div>
 					) : null}
 				</div>
 			</div>
@@ -114,10 +121,10 @@ const ThreadWelcome: FC = () => {
 };
 
 const STARTER_PROMPTS = [
-	"Explain quantum computing in simple terms",
-	"Write a Python function to sort a list",
-	"What are the benefits of TypeScript?",
-	"Help me draft a professional project update email",
+	"Explain how React hooks work",
+	"Write a TypeScript function to debounce",
+	"What's the difference between TCP and UDP?",
+	"Help me plan a weekend trip",
 ] as const;
 
 const ThreadSuggestions: FC = () => {

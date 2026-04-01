@@ -1,5 +1,6 @@
 import { ThreadListPrimitive } from "@assistant-ui/react";
 import { PlusIcon } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { ThreadList } from "#/components/assistant-ui/thread-list";
 import { SettingsDialog } from "#/components/settings-dialog";
 import ThemeToggle from "#/components/ThemeToggle";
@@ -14,6 +15,24 @@ import {
 } from "#/components/ui/sidebar";
 
 export function ChatSidebar() {
+	const newThreadButtonRef = useRef<HTMLButtonElement | null>(null);
+
+	useEffect(() => {
+		const handleShortcut = (event: KeyboardEvent) => {
+			const isMeta = event.metaKey || event.ctrlKey;
+			if (!isMeta || !event.shiftKey) return;
+			if (event.key.toLowerCase() !== "n") return;
+
+			event.preventDefault();
+			newThreadButtonRef.current?.click();
+		};
+
+		window.addEventListener("keydown", handleShortcut);
+		return () => {
+			window.removeEventListener("keydown", handleShortcut);
+		};
+	}, []);
+
 	return (
 		<Sidebar collapsible="icon" className="border-r">
 			<SidebarHeader className="gap-3 border-b">
@@ -27,8 +46,10 @@ export function ChatSidebar() {
 				</div>
 				<ThreadListPrimitive.New asChild>
 					<Button
+						ref={newThreadButtonRef}
 						variant="secondary"
 						className="h-9 justify-start gap-2 rounded-lg px-2.5 text-sm group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+						title="New Chat (Ctrl/Cmd+Shift+N)"
 					>
 						<PlusIcon className="size-4" />
 						<span className="group-data-[collapsible=icon]:hidden">
@@ -36,6 +57,9 @@ export function ChatSidebar() {
 						</span>
 					</Button>
 				</ThreadListPrimitive.New>
+				<p className="px-1 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+					No chats yet? Start a new conversation.
+				</p>
 			</SidebarHeader>
 
 			<SidebarContent>

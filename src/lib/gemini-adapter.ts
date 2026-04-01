@@ -152,21 +152,30 @@ const resolveSelectedModel = (modelFromContext: string | undefined): string => {
 const toErrorMessage = (error: unknown): string => {
 	if (error instanceof Error) {
 		const maybeApiError = error as Error & { status?: number };
+		const normalizedMessage = maybeApiError.message.toLowerCase();
 
 		if (maybeApiError.status === 401 || maybeApiError.status === 403) {
-			return "Invalid API key. Please check your key in Settings.";
+			return "Invalid API key. Please check your key in Settings";
 		}
 
 		if (maybeApiError.status === 429) {
-			return "Rate limit exceeded. Please wait a moment and try again.";
+			return "Rate limit exceeded. Please wait a moment and try again";
 		}
 
-		if (maybeApiError.message.toLowerCase().includes("model")) {
-			return "The selected model is unavailable. Please choose a different model in Settings.";
+		if (
+			normalizedMessage.includes("network") ||
+			normalizedMessage.includes("failed to fetch") ||
+			normalizedMessage.includes("load failed")
+		) {
+			return "Network error. Please check your internet connection";
 		}
 
-		if (maybeApiError.message.toLowerCase().includes("safety")) {
-			return "This response was blocked by Gemini's safety filters.";
+		if (normalizedMessage.includes("model")) {
+			return "The selected model is unavailable. Please choose a different model in Settings";
+		}
+
+		if (normalizedMessage.includes("safety")) {
+			return "This response was blocked by Gemini's safety filters";
 		}
 
 		return maybeApiError.message;
@@ -215,7 +224,22 @@ export const geminiAdapter: ChatModelAdapter = {
 	run: async function* ({ abortSignal, context, messages }) {
 		const apiKey = getStorageItem(API_KEY_STORAGE_KEY);
 		if (!apiKey) {
-			throw new Error("Please set your Gemini API key in Settings.");
+			yield {
+				content: [
+					{
+						type: "text",
+						text: "Please set your Gemini API key in Settings",
+					},
+				],
+				status: {
+					type: "incomplete",
+					reason: "error",
+					error: {
+						message: "Please set your Gemini API key in Settings",
+					},
+				},
+			};
+			return;
 		}
 
 		const selectedModel = resolveSelectedModel(context.config?.modelName);
