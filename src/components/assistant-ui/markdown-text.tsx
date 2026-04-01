@@ -17,7 +17,7 @@ const MarkdownTextImpl = () => {
 
 	return (
 		<Streamdown
-			animated
+			animated={isRunning || undefined}
 			caret={caret}
 			className={cn("aui-md text-sm leading-6")}
 			isAnimating={isRunning}
