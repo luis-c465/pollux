@@ -2,10 +2,13 @@
 
 import { useAuiState, useMessagePartText } from "@assistant-ui/react";
 import { code } from "@streamdown/code";
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 import { Streamdown } from "streamdown";
 
 import { cn } from "#/lib/utils";
+
+const BACKLOG_THRESHOLD = 100; // characters
+const ANIMATE_OPTIONS = { duration: 15, stagger: 5, sep: "word" } as const;
 
 const MarkdownTextImpl = () => {
 	const part = useMessagePartText();
@@ -17,7 +20,7 @@ const MarkdownTextImpl = () => {
 
 	return (
 		<Streamdown
-			animated={isRunning || undefined}
+			animated={ANIMATE_OPTIONS}
 			caret={caret}
 			className={cn("aui-md text-sm leading-6")}
 			isAnimating={isRunning}
