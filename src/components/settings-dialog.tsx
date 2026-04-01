@@ -25,12 +25,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
+import { Switch } from "#/components/ui/switch";
 import { Textarea } from "#/components/ui/textarea";
 import { GEMINI_MODELS } from "#/lib/gemini-models";
 import {
 	getApiKey,
 	removeApiKey,
 	setApiKey,
+	setGroundingEnabled,
 	setSelectedModel,
 	setSystemPrompt,
 	useSettings,
@@ -311,6 +313,25 @@ export function SettingsDialog() {
 							This prompt is sent at the start of every conversation to set the
 							assistant's behaviour.
 						</p>
+					</section>
+
+					<section className="flex flex-col gap-3">
+						<div className="flex items-start justify-between gap-4">
+							<div className="space-y-1">
+								<h3 className="text-sm font-semibold">
+									Google Search Grounding
+								</h3>
+								<p className="text-xs text-muted-foreground leading-relaxed">
+									When enabled, Gemini can use Google Search to ground responses
+									with up-to-date web sources.
+								</p>
+							</div>
+							<Switch
+								checked={settings.groundingEnabled}
+								onCheckedChange={(checked) => setGroundingEnabled(checked)}
+								aria-label="Toggle Google Search grounding"
+							/>
+						</div>
 					</section>
 				</div>
 			</DialogContent>

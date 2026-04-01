@@ -5,6 +5,7 @@ import { DEFAULT_MODEL, isGeminiModel } from "#/lib/gemini-models";
 export const SETTINGS_API_KEY = "gchat-api-key";
 export const SETTINGS_MODEL = "gchat-model";
 export const SETTINGS_SYSTEM_PROMPT = "gchat-system-prompt";
+export const SETTINGS_GROUNDING = "gchat-grounding";
 
 // ---------------------------------------------------------------------------
 // Custom event for same-tab storage notifications
@@ -70,6 +71,19 @@ export function setSystemPrompt(prompt: string): void {
 }
 
 // ---------------------------------------------------------------------------
+// Google Search grounding helpers
+// ---------------------------------------------------------------------------
+
+export function getGroundingEnabled(): boolean {
+	return localStorage.getItem(SETTINGS_GROUNDING) === "true";
+}
+
+export function setGroundingEnabled(enabled: boolean): void {
+	localStorage.setItem(SETTINGS_GROUNDING, String(enabled));
+	emitSettingsChange(SETTINGS_GROUNDING);
+}
+
+// ---------------------------------------------------------------------------
 // useSettings hook — reactive access via useSyncExternalStore
 // ---------------------------------------------------------------------------
 
@@ -78,6 +92,7 @@ export interface Settings {
 	hasApiKey: boolean;
 	selectedModel: string;
 	systemPrompt: string;
+	groundingEnabled: boolean;
 }
 
 function readSettings(): Settings {
@@ -86,6 +101,7 @@ function readSettings(): Settings {
 		hasApiKey: hasApiKey(),
 		selectedModel: getSelectedModel(),
 		systemPrompt: getSystemPrompt(),
+		groundingEnabled: getGroundingEnabled(),
 	};
 }
 
@@ -102,7 +118,8 @@ function subscribe(callback: () => void): () => void {
 		if (
 			e.key === SETTINGS_API_KEY ||
 			e.key === SETTINGS_MODEL ||
-			e.key === SETTINGS_SYSTEM_PROMPT
+			e.key === SETTINGS_SYSTEM_PROMPT ||
+			e.key === SETTINGS_GROUNDING
 		) {
 			cachedSettings = readSettings();
 			callback();
@@ -127,6 +144,7 @@ function getServerSnapshot(): Settings {
 		hasApiKey: false,
 		selectedModel: DEFAULT_MODEL,
 		systemPrompt: "",
+		groundingEnabled: false,
 	};
 }
 
@@ -159,4 +177,9 @@ export function useSelectedModel(): [string, (modelId: string) => void] {
 export function useSystemPrompt(): [string, (prompt: string) => void] {
 	const settings = useSettings();
 	return [settings.systemPrompt, useCallback(setSystemPrompt, [])];
+}
+
+export function useGroundingEnabled(): [boolean, (enabled: boolean) => void] {
+	const settings = useSettings();
+	return [settings.groundingEnabled, useCallback(setGroundingEnabled, [])];
 }

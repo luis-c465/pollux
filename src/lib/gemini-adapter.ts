@@ -1,6 +1,7 @@
 import type {
 	ChatModelAdapter,
 	ChatModelRunResult,
+	SourceMessagePart,
 	ThreadMessage,
 } from "@assistant-ui/react";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@google/genai";
 
 import { DEFAULT_MODEL, isGeminiModel } from "@/lib/gemini-models";
+import { getGroundingEnabled } from "@/lib/settings";
 
 const API_KEY_STORAGE_KEY = "gchat-api-key";
 const MODEL_STORAGE_KEY = "gchat-model";
@@ -220,6 +222,34 @@ const isAbortError = (error: unknown): boolean => {
 	return error instanceof Error && error.name === "AbortError";
 };
 
+const toSourceParts = (
+	groundingChunks: readonly (
+		| { web?: { uri?: string; title?: string } }
+		| undefined
+	)[],
+): SourceMessagePart[] => {
+	const seen = new Set<string>();
+	const sources: SourceMessagePart[] = [];
+
+	for (const chunk of groundingChunks) {
+		const uri = chunk?.web?.uri;
+		if (!uri || seen.has(uri)) {
+			continue;
+		}
+
+		seen.add(uri);
+		sources.push({
+			type: "source",
+			sourceType: "url",
+			id: `source-${seen.size}`,
+			url: uri,
+			title: chunk.web?.title,
+		});
+	}
+
+	return sources;
+};
+
 export const geminiAdapter: ChatModelAdapter = {
 	run: async function* ({ abortSignal, context, messages }) {
 		const apiKey = getStorageItem(API_KEY_STORAGE_KEY);
@@ -244,6 +274,7 @@ export const geminiAdapter: ChatModelAdapter = {
 
 		const selectedModel = resolveSelectedModel(context.config?.modelName);
 		const systemInstruction = getStorageItem(SYSTEM_PROMPT_STORAGE_KEY)?.trim();
+		const groundingEnabled = getGroundingEnabled();
 		const contents = messages
 			.map((message) => toGeminiContent(message))
 			.filter((content) => content !== null);
@@ -252,6 +283,7 @@ export const geminiAdapter: ChatModelAdapter = {
 
 		let accumulatedText = "";
 		let lastStatus: ChatModelRunResult["status"] | undefined;
+		let sourceParts: SourceMessagePart[] = [];
 
 		try {
 			const stream = await ai.models.generateContentStream({
@@ -259,6 +291,11 @@ export const geminiAdapter: ChatModelAdapter = {
 				contents,
 				config: {
 					abortSignal,
+					...(groundingEnabled
+						? {
+								tools: [{ googleSearch: {} }],
+							}
+						: {}),
 					...(systemInstruction
 						? {
 								systemInstruction,
@@ -272,6 +309,12 @@ export const geminiAdapter: ChatModelAdapter = {
 					accumulatedText += chunk.text;
 				}
 
+				const groundingChunks =
+					chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
+				if (groundingChunks?.length) {
+					sourceParts = toSourceParts(groundingChunks);
+				}
+
 				const finishReason = chunk.candidates?.[0]?.finishReason;
 				if (finishReason) {
 					lastStatus = mapFinishReasonToStatus(finishReason);
@@ -283,7 +326,12 @@ export const geminiAdapter: ChatModelAdapter = {
 				};
 			}
 
-			if (!lastStatus) {
+			if (sourceParts.length > 0) {
+				yield {
+					content: [{ type: "text", text: accumulatedText }, ...sourceParts],
+					status: lastStatus ?? { type: "complete", reason: "stop" },
+				};
+			} else if (!lastStatus) {
 				yield {
 					content: [{ type: "text", text: accumulatedText }],
 					status: { type: "complete", reason: "stop" },
