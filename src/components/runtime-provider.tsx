@@ -4,6 +4,7 @@ import {
 	useRemoteThreadListRuntime,
 } from "@assistant-ui/react";
 import type { PropsWithChildren } from "react";
+import { compositeAttachmentAdapter } from "#/lib/attachment-adapter";
 import { geminiAdapter } from "#/lib/gemini-adapter";
 import { useSettings } from "#/lib/settings";
 import { threadListAdapter } from "#/lib/thread-list-adapter";
@@ -18,7 +19,11 @@ function MissingApiKeyNotice() {
 }
 
 function useGChatLocalRuntime() {
-	return useLocalRuntime(geminiAdapter);
+	return useLocalRuntime(geminiAdapter, {
+		adapters: {
+			attachments: compositeAttachmentAdapter,
+		},
+	});
 }
 
 export function GChatRuntimeProvider({ children }: PropsWithChildren) {

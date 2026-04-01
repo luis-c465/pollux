@@ -21,6 +21,13 @@ type DataUrlPayload = {
 	data: string;
 };
 
+const TEXT_FILE_MIME_PREFIXES = ["text/"];
+const TEXT_FILE_MIME_TYPES = new Set([
+	"application/json",
+	"application/javascript",
+	"text/javascript",
+]);
+
 const getStorageItem = (key: string) => {
 	if (typeof window === "undefined") {
 		return null;
@@ -47,6 +54,28 @@ const parseDataUrl = (value: string): DataUrlPayload | null => {
 	return { mimeType, data };
 };
 
+const isTextLikeMimeType = (mimeType: string): boolean => {
+	return (
+		TEXT_FILE_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix)) ||
+		TEXT_FILE_MIME_TYPES.has(mimeType)
+	);
+};
+
+const toTextFilePart = (
+	filename: string | undefined,
+	data: string,
+): Part | null => {
+	const text = data.trim();
+	if (!text) {
+		return null;
+	}
+
+	const label = filename ? `File: ${filename}\n` : "";
+	return {
+		text: `${label}${text}`,
+	};
+};
+
 const toGeminiPart = (part: ThreadMessage["content"][number]): Part | null => {
 	if (part.type === "text") {
 		const text = part.text.trim();
@@ -66,6 +95,24 @@ const toGeminiPart = (part: ThreadMessage["content"][number]): Part | null => {
 		return {
 			inlineData: {
 				mimeType: parsedDataUrl.mimeType,
+				data: parsedDataUrl.data,
+			},
+		};
+	}
+
+	if (part.type === "file") {
+		if (isTextLikeMimeType(part.mimeType)) {
+			return toTextFilePart(part.filename, part.data);
+		}
+
+		const parsedDataUrl = parseDataUrl(part.data);
+		if (!parsedDataUrl) {
+			return null;
+		}
+
+		return {
+			inlineData: {
+				mimeType: part.mimeType || parsedDataUrl.mimeType,
 				data: parsedDataUrl.data,
 			},
 		};
