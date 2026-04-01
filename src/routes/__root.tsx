@@ -38,7 +38,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+				<script>{THEME_INIT_SCRIPT}</script>
 				<HeadContent />
 			</head>
 			<body className="h-dvh overflow-hidden">

@@ -45,17 +45,24 @@ const ThreadListNew: FC = () => {
 };
 
 const ThreadListSkeleton: FC = () => {
+	const skeletonIds = [
+		"thread-skeleton-1",
+		"thread-skeleton-2",
+		"thread-skeleton-3",
+		"thread-skeleton-4",
+		"thread-skeleton-5",
+	] as const;
+
 	return (
 		<div className="flex flex-col gap-1">
-			{Array.from({ length: 5 }, (_, i) => (
-				<div
-					key={i}
-					role="status"
+			{skeletonIds.map((id) => (
+				<output
+					key={id}
 					aria-label="Loading threads"
 					className="aui-thread-list-skeleton-wrapper flex h-9 items-center px-3"
 				>
 					<Skeleton className="aui-thread-list-skeleton h-4 w-full" />
-				</div>
+				</output>
 			))}
 		</div>
 	);
