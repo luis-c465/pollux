@@ -9,6 +9,14 @@ export interface GeminiModel {
 
 export const GEMINI_MODELS: readonly GeminiModel[] = [
 	{
+		id: "gemini-3-flash-preview",
+		name: "Gemini 3 Flash",
+		description: "Fast and efficient for most tasks",
+		supportsVision: true,
+		supportsAttachments: true,
+		maxTokens: 1_048_576,
+	},
+	{
 		id: "gemini-2.5-flash",
 		name: "Gemini 2.5 Flash",
 		description: "Fast and efficient for most tasks",
