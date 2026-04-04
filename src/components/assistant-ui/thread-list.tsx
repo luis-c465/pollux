@@ -4,13 +4,22 @@ import {
 	ThreadListPrimitive,
 	useAuiState,
 } from "@assistant-ui/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
 	ArchiveIcon,
 	ChevronRightIcon,
 	TrashIcon,
 	Undo2Icon,
 } from "lucide-react";
-import { type FC, useEffect, useMemo, useState } from "react";
+import {
+	Component,
+	type FC,
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Collapsible,
@@ -27,6 +36,10 @@ import {
 import { Skeleton } from "#/components/ui/skeleton";
 import { getAllThreads } from "#/lib/db";
 
+// ---------------------------------------------------------------------------
+// Time group helpers
+// ---------------------------------------------------------------------------
+
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
 const TIME_GROUPS = {
@@ -40,7 +53,7 @@ const TIME_GROUPS = {
 
 type TimeGroup = keyof typeof TIME_GROUPS;
 
-const getStartOfToday = (timestamp = Date.now()) => {
+const getStartOfToday = (timestamp = Date.now()): number => {
 	const date = new Date(timestamp);
 	date.setHours(0, 0, 0, 0);
 	return date.getTime();
@@ -49,124 +62,218 @@ const getStartOfToday = (timestamp = Date.now()) => {
 const getTimeGroup = (updatedAt: number, now = Date.now()): TimeGroup => {
 	const startOfToday = getStartOfToday(now);
 
-	if (updatedAt >= startOfToday) {
-		return "today";
-	}
-
-	if (updatedAt >= startOfToday - 3 * DAY_IN_MS) {
-		return "last3Days";
-	}
-
-	if (updatedAt >= startOfToday - 7 * DAY_IN_MS) {
-		return "week";
-	}
-
-	if (updatedAt >= startOfToday - 30 * DAY_IN_MS) {
-		return "month";
-	}
-
-	if (updatedAt >= startOfToday - 365 * DAY_IN_MS) {
-		return "year";
-	}
-
+	if (updatedAt >= startOfToday) return "today";
+	if (updatedAt >= startOfToday - 3 * DAY_IN_MS) return "last3Days";
+	if (updatedAt >= startOfToday - 7 * DAY_IN_MS) return "week";
+	if (updatedAt >= startOfToday - 30 * DAY_IN_MS) return "month";
+	if (updatedAt >= startOfToday - 365 * DAY_IN_MS) return "year";
 	return "older";
 };
 
+// ---------------------------------------------------------------------------
+// Hook: load time groups from DB (single scan, simplified refresh key)
+// ---------------------------------------------------------------------------
+
 const useThreadTimeGroups = () => {
-	const refreshKey = useAuiState(
-		(s) =>
-			`${s.threads.threadIds.join("|")}:${s.threads.archivedThreadIds.join("|")}:${s.threads.threadItems
-				.map((item) => `${item.id}:${item.title ?? ""}:${item.status}`)
-				.join("|")}`,
+	// Simplified refresh key: only re-scan when thread count changes,
+	// not on every title/status change.
+	const threadCount = useAuiState(
+		(s) => s.threads.threadIds.length + s.threads.archivedThreadIds.length,
 	);
 	const [threadTimeGroups, setThreadTimeGroups] = useState<
 		Map<string, TimeGroup>
 	>(() => new Map());
-	const [hasLoadedThreadTimeGroups, setHasLoadedThreadTimeGroups] =
-		useState(false);
+	const [hasLoaded, setHasLoaded] = useState(false);
 
 	useEffect(() => {
 		let isActive = true;
 
-		const loadThreadGroups = async (_refreshKey: string) => {
+		const load = async (count: number) => {
 			try {
+				// count param ensures the compiler sees threadCount as used
+				if (count < 0) return;
+
 				const threads = await getAllThreads();
 				if (!isActive) return;
 
 				const now = Date.now();
 				const groupById = new Map<string, TimeGroup>();
-
 				for (const thread of threads) {
 					groupById.set(thread.id, getTimeGroup(thread.updatedAt, now));
 				}
 
 				setThreadTimeGroups(groupById);
-				setHasLoadedThreadTimeGroups(true);
+				setHasLoaded(true);
 			} catch {
 				if (!isActive) return;
 				setThreadTimeGroups(new Map());
-				setHasLoadedThreadTimeGroups(false);
+				setHasLoaded(false);
 			}
 		};
 
-		void loadThreadGroups(refreshKey);
-
+		void load(threadCount);
 		return () => {
 			isActive = false;
 		};
-	}, [refreshKey]);
+	}, [threadCount]);
 
-	return { hasLoadedThreadTimeGroups, threadTimeGroups };
+	return { hasLoaded, threadTimeGroups };
 };
 
-const ThreadListGroupedItems: FC = () => {
+// ---------------------------------------------------------------------------
+// Virtual row types
+// ---------------------------------------------------------------------------
+
+type VirtualRow =
+	| { type: "header"; group: TimeGroup; key: string }
+	| { type: "thread"; threadIndex: number; threadId: string; key: string };
+
+const HEADER_HEIGHT = 28;
+const THREAD_ITEM_HEIGHT = 36;
+
+// ---------------------------------------------------------------------------
+// Error boundary: catches stale thread lookups during deletion race conditions.
+// When a thread is deleted, assistant-ui removes it from its internal registry
+// before the virtualizer re-renders, causing ItemByIndex to look up a thread
+// that no longer exists. This boundary renders null for the stale frame, and
+// the virtualizer recalculates on the next render (unmounting this instance).
+// ---------------------------------------------------------------------------
+
+class ThreadItemErrorBoundary extends Component<
+	{ children: ReactNode },
+	{ hasError: boolean }
+> {
+	state = { hasError: false };
+
+	static getDerivedStateFromError() {
+		return { hasError: true };
+	}
+
+	render() {
+		if (this.state.hasError) return null;
+		return this.props.children;
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Virtualized regular thread list
+// ---------------------------------------------------------------------------
+
+const VirtualizedThreadItems: FC = () => {
 	const regularThreadIds = useAuiState((s) => s.threads.threadIds);
-	const { hasLoadedThreadTimeGroups, threadTimeGroups } = useThreadTimeGroups();
+	const { hasLoaded, threadTimeGroups } = useThreadTimeGroups();
+	const parentRef = useRef<HTMLDivElement>(null);
 
-	const headersByThreadId = useMemo(() => {
+	// Build a flat list of rows: interleaved headers + thread indices
+	const rows = useMemo<VirtualRow[]>(() => {
+		if (!hasLoaded) return [];
+
+		const result: VirtualRow[] = [];
 		const seenGroups = new Set<TimeGroup>();
-		const headers = new Map<string, TimeGroup>();
 
-		for (const threadId of regularThreadIds) {
+		for (let i = 0; i < regularThreadIds.length; i++) {
+			const threadId = regularThreadIds[i];
+			if (!threadId) continue;
 			const group = threadTimeGroups.get(threadId) ?? "older";
-			if (seenGroups.has(group)) {
-				continue;
+
+			if (!seenGroups.has(group)) {
+				seenGroups.add(group);
+				result.push({
+					type: "header",
+					group,
+					key: `header-${group}`,
+				});
 			}
 
-			seenGroups.add(group);
-			headers.set(threadId, group);
+			result.push({
+				type: "thread",
+				threadIndex: i,
+				threadId,
+				key: threadId,
+			});
 		}
 
-		return headers;
-	}, [regularThreadIds, threadTimeGroups]);
+		return result;
+	}, [regularThreadIds, threadTimeGroups, hasLoaded]);
 
-	if (!hasLoadedThreadTimeGroups) {
-		return (
-			<ThreadListPrimitive.Items>
-				{() => <ThreadListItem />}
-			</ThreadListPrimitive.Items>
-		);
+	const virtualizer = useVirtualizer({
+		count: rows.length,
+		getScrollElement: () => parentRef.current,
+		estimateSize: (index) =>
+			rows[index]?.type === "header" ? HEADER_HEIGHT : THREAD_ITEM_HEIGHT,
+		overscan: 15,
+		getItemKey: (index) => rows[index]?.key ?? index,
+	});
+
+	if (!hasLoaded) {
+		return <ThreadListSkeleton />;
 	}
 
 	return (
-		<ThreadListPrimitive.Items>
-			{({ threadListItem }) => {
-				const headerGroup = headersByThreadId.get(threadListItem.id);
+		<div
+			ref={parentRef}
+			className="flex-1 overflow-y-auto min-h-0 overflow-x-hidden"
+		>
+			<div
+				style={{
+					height: `${virtualizer.getTotalSize()}px`,
+					width: "100%",
+					position: "relative",
+				}}
+			>
+				{virtualizer.getVirtualItems().map((virtualItem) => {
+					const row = rows[virtualItem.index];
+					if (!row) return null;
 
-				return (
-					<>
-						{headerGroup ? (
-							<p className="px-3 pb-1 pt-2 text-muted-foreground text-xs">
-								{TIME_GROUPS[headerGroup]}
-							</p>
-						) : null}
-						<ThreadListItem />
-					</>
-				);
-			}}
-		</ThreadListPrimitive.Items>
+					if (row.type === "header") {
+						return (
+							<div
+								key={virtualItem.key}
+								style={{
+									position: "absolute",
+									top: 0,
+									left: 0,
+									width: "100%",
+									height: `${virtualItem.size}px`,
+									transform: `translateY(${virtualItem.start}px)`,
+								}}
+							>
+								<p className="px-3 pb-1 pt-2 text-muted-foreground text-xs">
+									{TIME_GROUPS[row.group]}
+								</p>
+							</div>
+						);
+					}
+
+					return (
+						<div
+							key={virtualItem.key}
+							style={{
+								position: "absolute",
+								top: 0,
+								left: 0,
+								width: "100%",
+								height: `${virtualItem.size}px`,
+								transform: `translateY(${virtualItem.start}px)`,
+							}}
+						>
+							<ThreadItemErrorBoundary>
+								<ThreadListPrimitive.ItemByIndex
+									index={row.threadIndex}
+									components={{ ThreadListItem: RegularThreadListItem }}
+								/>
+							</ThreadItemErrorBoundary>
+						</div>
+					);
+				})}
+			</div>
+		</div>
 	);
 };
+
+// ---------------------------------------------------------------------------
+// Main ThreadList
+// ---------------------------------------------------------------------------
 
 export const ThreadList: FC = () => {
 	return (
@@ -175,8 +282,8 @@ export const ThreadList: FC = () => {
 				<ThreadListSkeleton />
 			</AuiIf>
 			<AuiIf condition={(s) => !s.threads.isLoading}>
-				<ThreadListGroupedItems />
-				<Collapsible defaultOpen={false} className="mx-1 mt-1">
+				<VirtualizedThreadItems />
+				<Collapsible defaultOpen={false} className="mx-1 mt-1 shrink-0">
 					<CollapsibleTrigger asChild>
 						<Button
 							variant="ghost"
@@ -188,7 +295,7 @@ export const ThreadList: FC = () => {
 					</CollapsibleTrigger>
 					<CollapsibleContent className="space-y-1">
 						<ThreadListPrimitive.Items archived>
-							{() => <ThreadListItem archived />}
+							{() => <ArchivedThreadListItem />}
 						</ThreadListPrimitive.Items>
 					</CollapsibleContent>
 				</Collapsible>
@@ -196,6 +303,10 @@ export const ThreadList: FC = () => {
 		</ThreadListPrimitive.Root>
 	);
 };
+
+// ---------------------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------------------
 
 const ThreadListSkeleton: FC = () => {
 	const skeletonIds = [
@@ -221,7 +332,11 @@ const ThreadListSkeleton: FC = () => {
 	);
 };
 
-const ThreadListItem: FC<{ archived?: boolean }> = ({ archived = false }) => {
+// ---------------------------------------------------------------------------
+// Thread list items (regular + archived variants)
+// ---------------------------------------------------------------------------
+
+function RegularThreadListItem() {
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
@@ -234,21 +349,12 @@ const ThreadListItem: FC<{ archived?: boolean }> = ({ archived = false }) => {
 				</ThreadListItemPrimitive.Root>
 			</ContextMenuTrigger>
 			<ContextMenuContent className="min-w-40">
-				{archived ? (
-					<ThreadListItemPrimitive.Unarchive asChild>
-						<ContextMenuItem>
-							<Undo2Icon className="size-4" />
-							Unarchive
-						</ContextMenuItem>
-					</ThreadListItemPrimitive.Unarchive>
-				) : (
-					<ThreadListItemPrimitive.Archive asChild>
-						<ContextMenuItem>
-							<ArchiveIcon className="size-4" />
-							Archive
-						</ContextMenuItem>
-					</ThreadListItemPrimitive.Archive>
-				)}
+				<ThreadListItemPrimitive.Archive asChild>
+					<ContextMenuItem>
+						<ArchiveIcon className="size-4" />
+						Archive
+					</ContextMenuItem>
+				</ThreadListItemPrimitive.Archive>
 				<ContextMenuSeparator />
 				<ThreadListItemPrimitive.Delete asChild>
 					<ContextMenuItem variant="destructive">
@@ -259,4 +365,35 @@ const ThreadListItem: FC<{ archived?: boolean }> = ({ archived = false }) => {
 			</ContextMenuContent>
 		</ContextMenu>
 	);
-};
+}
+
+function ArchivedThreadListItem() {
+	return (
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 w-full min-w-0 items-center rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
+					<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-8 min-w-0 flex-1 items-center overflow-hidden px-3 text-sidebar-foreground text-start text-sm">
+						<span className="aui-thread-list-item-title block min-w-0 flex-1 truncate">
+							<ThreadListItemPrimitive.Title fallback="New Chat" />
+						</span>
+					</ThreadListItemPrimitive.Trigger>
+				</ThreadListItemPrimitive.Root>
+			</ContextMenuTrigger>
+			<ContextMenuContent className="min-w-40">
+				<ThreadListItemPrimitive.Unarchive asChild>
+					<ContextMenuItem>
+						<Undo2Icon className="size-4" />
+						Unarchive
+					</ContextMenuItem>
+				</ThreadListItemPrimitive.Unarchive>
+				<ContextMenuSeparator />
+				<ThreadListItemPrimitive.Delete asChild>
+					<ContextMenuItem variant="destructive">
+						<TrashIcon className="size-4" />
+						Delete
+					</ContextMenuItem>
+				</ThreadListItemPrimitive.Delete>
+			</ContextMenuContent>
+		</ContextMenu>
+	);
+}

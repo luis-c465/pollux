@@ -5,7 +5,7 @@ import { ThreadList } from "#/components/assistant-ui/thread-list";
 import { SettingsDialog } from "#/components/settings-dialog";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ChatSidebar() {
 	const newThreadButtonRef = useRef<HTMLButtonElement | null>(null);
