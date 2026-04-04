@@ -25,24 +25,17 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "#/components/ui/select";
-import { Slider } from "#/components/ui/slider";
 import { Switch } from "#/components/ui/switch";
 import { Textarea } from "#/components/ui/textarea";
 import { GEMINI_MODELS, getGeminiModel } from "#/lib/gemini-models";
 import {
-	DEFAULT_THINKING_BUDGET,
 	getApiKey,
-	MAX_THINKING_BUDGET,
-	MIN_THINKING_BUDGET,
 	removeApiKey,
 	setApiKey,
 	setGroundingEnabled,
 	setSelectedModel,
 	setSystemPrompt,
-	setThinkingBudget,
 	setThinkingEnabled,
-	setThinkingLevel,
-	type ThinkingLevel,
 	useSettings,
 } from "#/lib/settings";
 import { cn } from "#/lib/utils";
@@ -137,7 +130,6 @@ export function SettingsDialog() {
 
 	const selectedModel = getGeminiModel(settings.selectedModel);
 	const supportsThinking = selectedModel?.supportsThinking === true;
-	const thinkingType = selectedModel?.thinkingType;
 
 	useEffect(() => {
 		const handleOpenRequest = () => handleOpenChange(true);
@@ -348,80 +340,6 @@ export function SettingsDialog() {
 							<p className="text-xs text-muted-foreground">
 								This model does not support configurable thinking.
 							</p>
-						) : null}
-
-						{supportsThinking && settings.thinkingEnabled ? (
-							<div className="space-y-4 rounded-md border p-3">
-								{thinkingType === "budget" ? (
-									<div className="space-y-2">
-										<div className="flex items-center justify-between gap-2">
-											<Label htmlFor="thinking-budget">Thinking Budget</Label>
-											<Input
-												id="thinking-budget"
-												type="number"
-												value={settings.thinkingBudget}
-												min={MIN_THINKING_BUDGET}
-												max={MAX_THINKING_BUDGET}
-												onChange={(event) => {
-													const nextValue = Number.parseInt(
-														event.target.value,
-														10,
-													);
-													if (Number.isNaN(nextValue)) {
-														setThinkingBudget(DEFAULT_THINKING_BUDGET);
-														return;
-													}
-
-													setThinkingBudget(nextValue);
-												}}
-												className="h-8 w-28"
-											/>
-										</div>
-										<Slider
-											value={[settings.thinkingBudget]}
-											min={MIN_THINKING_BUDGET}
-											max={MAX_THINKING_BUDGET}
-											step={256}
-											onValueChange={(values) => {
-												const [value] = values;
-												if (value === undefined) {
-													return;
-												}
-
-												setThinkingBudget(value);
-											}}
-										/>
-										<p className="text-xs text-muted-foreground">
-											Higher budgets allow deeper reasoning but can take longer.
-										</p>
-									</div>
-								) : null}
-
-								{thinkingType === "level" ? (
-									<div className="space-y-2">
-										<Label htmlFor="thinking-level">Thinking Level</Label>
-										<Select
-											value={settings.thinkingLevel}
-											onValueChange={(value) =>
-												setThinkingLevel(value as ThinkingLevel)
-											}
-										>
-											<SelectTrigger id="thinking-level" className="w-full">
-												<SelectValue placeholder="Select thinking level" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="minimal">Minimal</SelectItem>
-												<SelectItem value="low">Low</SelectItem>
-												<SelectItem value="medium">Medium</SelectItem>
-												<SelectItem value="high">High</SelectItem>
-											</SelectContent>
-										</Select>
-										<p className="text-xs text-muted-foreground">
-											Higher levels increase reasoning depth.
-										</p>
-									</div>
-								) : null}
-							</div>
 						) : null}
 					</section>
 

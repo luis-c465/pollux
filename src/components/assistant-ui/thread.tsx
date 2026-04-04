@@ -34,6 +34,7 @@ import { Sources } from "#/components/assistant-ui/sources";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "#/components/assistant-ui/tooltip-icon-button";
 import { ComposerModelSelector } from "#/components/composer-model-selector";
+import { ComposerThinkingSelector } from "#/components/composer-thinking-selector";
 import { openSettingsDialog } from "#/components/settings-dialog";
 import { Button } from "#/components/ui/button";
 import { useSettings } from "#/lib/settings";
@@ -186,6 +187,7 @@ const ComposerAction: FC = () => {
 			<div className="flex items-center gap-2">
 				<ComposerAddAttachment />
 				<ComposerModelSelector />
+				<ComposerThinkingSelector />
 			</div>
 			<AuiIf condition={(s) => !s.thread.isRunning}>
 				<ComposerPrimitive.Send asChild>
