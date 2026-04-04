@@ -1,15 +1,11 @@
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type {
 	ChatModelAdapter,
 	ChatModelRunResult,
 	SourceMessagePart,
 	ThreadMessage,
 } from "@assistant-ui/react";
-import {
-	type Content,
-	FinishReason,
-	GoogleGenAI,
-	type Part,
-} from "@google/genai";
+import { type ModelMessage, streamText } from "ai";
 
 import { DEFAULT_MODEL, isGeminiModel } from "@/lib/gemini-models";
 import { getGroundingEnabled } from "@/lib/settings";
@@ -22,6 +18,19 @@ type DataUrlPayload = {
 	mimeType: string;
 	data: string;
 };
+
+type AiSdkFilePart = {
+	type: "file";
+	mediaType: string;
+	data: Uint8Array;
+};
+
+type AiSdkTextPart = {
+	type: "text";
+	text: string;
+};
+
+type AiSdkMessagePart = AiSdkFilePart | AiSdkTextPart;
 
 const TEXT_FILE_MIME_PREFIXES = ["text/"];
 const TEXT_FILE_MIME_TYPES = new Set([
@@ -66,7 +75,7 @@ const isTextLikeMimeType = (mimeType: string): boolean => {
 const toTextFilePart = (
 	filename: string | undefined,
 	data: string,
-): Part | null => {
+): AiSdkTextPart | null => {
 	const text = data.trim();
 	if (!text) {
 		return null;
@@ -75,17 +84,31 @@ const toTextFilePart = (
 	const label = filename ? `File: ${filename}\n` : "";
 	return {
 		text: `${label}${text}`,
+		type: "text",
 	};
 };
 
-const toGeminiPart = (part: ThreadMessage["content"][number]): Part | null => {
+const decodeBase64 = (value: string): Uint8Array => {
+	const decoded = window.atob(value);
+	const bytes = new Uint8Array(decoded.length);
+
+	for (let index = 0; index < decoded.length; index += 1) {
+		bytes[index] = decoded.charCodeAt(index);
+	}
+
+	return bytes;
+};
+
+const toAiSdkPart = (
+	part: ThreadMessage["content"][number],
+): AiSdkMessagePart | null => {
 	if (part.type === "text") {
 		const text = part.text.trim();
 		if (!text) {
 			return null;
 		}
 
-		return { text };
+		return { type: "text", text };
 	}
 
 	if (part.type === "image") {
@@ -95,10 +118,9 @@ const toGeminiPart = (part: ThreadMessage["content"][number]): Part | null => {
 		}
 
 		return {
-			inlineData: {
-				mimeType: parsedDataUrl.mimeType,
-				data: parsedDataUrl.data,
-			},
+			type: "file",
+			mediaType: parsedDataUrl.mimeType,
+			data: decodeBase64(parsedDataUrl.data),
 		};
 	}
 
@@ -113,17 +135,16 @@ const toGeminiPart = (part: ThreadMessage["content"][number]): Part | null => {
 		}
 
 		return {
-			inlineData: {
-				mimeType: part.mimeType || parsedDataUrl.mimeType,
-				data: parsedDataUrl.data,
-			},
+			type: "file",
+			mediaType: part.mimeType || parsedDataUrl.mimeType,
+			data: decodeBase64(parsedDataUrl.data),
 		};
 	}
 
 	return null;
 };
 
-const toGeminiContent = (message: ThreadMessage): Content | null => {
+const toAiSdkMessage = (message: ThreadMessage): ModelMessage | null => {
 	if (message.role === "system") {
 		return null;
 	}
@@ -133,15 +154,22 @@ const toGeminiContent = (message: ThreadMessage): Content | null => {
 	}
 
 	const parts = message.content
-		.map(toGeminiPart)
+		.map(toAiSdkPart)
 		.filter((part) => part !== null);
 	if (parts.length === 0) {
 		return null;
 	}
 
+	if (parts.length === 1 && parts[0]?.type === "text") {
+		return {
+			role: message.role,
+			content: parts[0].text,
+		};
+	}
+
 	return {
-		role: message.role === "assistant" ? "model" : "user",
-		parts,
+		role: message.role,
+		content: parts,
 	};
 };
 
@@ -187,25 +215,17 @@ const toErrorMessage = (error: unknown): string => {
 };
 
 const mapFinishReasonToStatus = (
-	finishReason: FinishReason,
+	finishReason: string | undefined,
 ): ChatModelRunResult["status"] => {
-	if (finishReason === FinishReason.STOP) {
+	if (finishReason === "stop") {
 		return { type: "complete", reason: "stop" };
 	}
 
-	if (finishReason === FinishReason.MAX_TOKENS) {
+	if (finishReason === "length") {
 		return { type: "incomplete", reason: "length" };
 	}
 
-	if (
-		finishReason === FinishReason.SAFETY ||
-		finishReason === FinishReason.BLOCKLIST ||
-		finishReason === FinishReason.PROHIBITED_CONTENT ||
-		finishReason === FinishReason.SPII ||
-		finishReason === FinishReason.IMAGE_SAFETY ||
-		finishReason === FinishReason.IMAGE_PROHIBITED_CONTENT ||
-		finishReason === FinishReason.RECITATION
-	) {
+	if (finishReason === "content-filter") {
 		return {
 			type: "incomplete",
 			reason: "content-filter",
@@ -220,6 +240,25 @@ const mapFinishReasonToStatus = (
 
 const isAbortError = (error: unknown): boolean => {
 	return error instanceof Error && error.name === "AbortError";
+};
+
+const toSourcePart = (source: {
+	id?: unknown;
+	sourceType?: unknown;
+	title?: unknown;
+	url?: unknown;
+}): SourceMessagePart | null => {
+	if (source.sourceType !== "url" || typeof source.url !== "string") {
+		return null;
+	}
+
+	return {
+		type: "source",
+		sourceType: "url",
+		id: typeof source.id === "string" ? source.id : `source-${source.url}`,
+		url: source.url,
+		title: typeof source.title === "string" ? source.title : undefined,
+	};
 };
 
 const toSourceParts = (
@@ -250,6 +289,29 @@ const toSourceParts = (
 	return sources;
 };
 
+const mergeSourceParts = (
+	current: SourceMessagePart[],
+	next: SourceMessagePart[],
+): SourceMessagePart[] => {
+	if (next.length === 0) {
+		return current;
+	}
+
+	const deduped = [...current];
+	const seen = new Set(deduped.map((source) => source.url));
+
+	for (const source of next) {
+		if (seen.has(source.url)) {
+			continue;
+		}
+
+		seen.add(source.url);
+		deduped.push(source);
+	}
+
+	return deduped;
+};
+
 export const geminiAdapter: ChatModelAdapter = {
 	run: async function* ({ abortSignal, context, messages }) {
 		const apiKey = getStorageItem(API_KEY_STORAGE_KEY);
@@ -275,55 +337,87 @@ export const geminiAdapter: ChatModelAdapter = {
 		const selectedModel = resolveSelectedModel(context.config?.modelName);
 		const systemInstruction = getStorageItem(SYSTEM_PROMPT_STORAGE_KEY)?.trim();
 		const groundingEnabled = getGroundingEnabled();
-		const contents = messages
-			.map((message) => toGeminiContent(message))
-			.filter((content) => content !== null);
+		const aiMessages = messages
+			.map((message) => toAiSdkMessage(message))
+			.filter((content): content is ModelMessage => content !== null);
 
-		const ai = new GoogleGenAI({ apiKey });
+		const google = createGoogleGenerativeAI({ apiKey });
 
 		let accumulatedText = "";
 		let lastStatus: ChatModelRunResult["status"] | undefined;
 		let sourceParts: SourceMessagePart[] = [];
 
 		try {
-			const stream = await ai.models.generateContentStream({
-				model: selectedModel,
-				contents,
-				config: {
-					abortSignal,
-					...(groundingEnabled
-						? {
-								tools: [{ googleSearch: {} }],
-							}
-						: {}),
-					...(systemInstruction
-						? {
-								systemInstruction,
-							}
-						: {}),
-				},
+			const stream = streamText({
+				abortSignal,
+				model: google(selectedModel),
+				messages: aiMessages,
+				...(groundingEnabled
+					? {
+							tools: {
+								google_search: google.tools.googleSearch({}),
+							},
+						}
+					: {}),
+				...(systemInstruction
+					? {
+							system: systemInstruction,
+						}
+					: {}),
 			});
 
-			for await (const chunk of stream) {
-				if (chunk.text) {
-					accumulatedText += chunk.text;
+			for await (const part of stream.fullStream) {
+				if (part.type === "text-delta") {
+					if (part.text) {
+						accumulatedText += part.text;
+					}
+
+					yield {
+						content: [{ type: "text", text: accumulatedText }],
+						...(lastStatus ? { status: lastStatus } : {}),
+					};
+					continue;
 				}
 
-				const groundingChunks =
-					chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
-				if (groundingChunks?.length) {
-					sourceParts = toSourceParts(groundingChunks);
+				if (part.type === "source") {
+					const source = toSourcePart(part);
+					if (source) {
+						sourceParts = mergeSourceParts(sourceParts, [source]);
+					}
+					continue;
 				}
 
-				const finishReason = chunk.candidates?.[0]?.finishReason;
-				if (finishReason) {
-					lastStatus = mapFinishReasonToStatus(finishReason);
+				if (part.type === "finish-step") {
+					const groundingChunks = (
+						part.providerMetadata as {
+							google?: {
+								groundingMetadata?: {
+									groundingChunks?: readonly (
+										| { web?: { uri?: string; title?: string } }
+										| undefined
+									)[];
+								};
+							};
+						}
+					).google?.groundingMetadata?.groundingChunks;
+
+					if (groundingChunks?.length) {
+						sourceParts = mergeSourceParts(
+							sourceParts,
+							toSourceParts(groundingChunks),
+						);
+					}
+					continue;
 				}
 
-				yield {
-					content: [{ type: "text", text: accumulatedText }],
-					...(lastStatus ? { status: lastStatus } : {}),
-				};
+				if (part.type === "finish") {
+					lastStatus = mapFinishReasonToStatus(part.finishReason);
+					continue;
+				}
+
+				if (part.type === "error") {
+					throw part.error;
+				}
 			}
 
 			if (sourceParts.length > 0) {
