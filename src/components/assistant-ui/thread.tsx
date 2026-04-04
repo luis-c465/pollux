@@ -33,6 +33,7 @@ import { Reasoning } from "#/components/assistant-ui/reasoning";
 import { Sources } from "#/components/assistant-ui/sources";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "#/components/assistant-ui/tooltip-icon-button";
+import { ComposerModelSelector } from "#/components/composer-model-selector";
 import { openSettingsDialog } from "#/components/settings-dialog";
 import { Button } from "#/components/ui/button";
 import { useSettings } from "#/lib/settings";
@@ -182,7 +183,10 @@ const Composer: FC = () => {
 const ComposerAction: FC = () => {
 	return (
 		<div className="aui-composer-action-wrapper relative flex items-center justify-between">
-			<ComposerAddAttachment />
+			<div className="flex items-center gap-2">
+				<ComposerAddAttachment />
+				<ComposerModelSelector />
+			</div>
 			<AuiIf condition={(s) => !s.thread.isRunning}>
 				<ComposerPrimitive.Send asChild>
 					<TooltipIconButton

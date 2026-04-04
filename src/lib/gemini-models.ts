@@ -1,6 +1,8 @@
 export interface GeminiModel {
 	id: string;
 	name: string;
+	provider: string;
+	group: string;
 	description: string;
 	supportsVision: boolean;
 	supportsAttachments: boolean;
@@ -13,6 +15,8 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 	{
 		id: "gemini-3-flash-preview",
 		name: "Gemini 3 Flash",
+		provider: "Google",
+		group: "Gemini 3",
 		description: "Fast and efficient for most tasks",
 		supportsVision: true,
 		supportsAttachments: true,
@@ -23,6 +27,8 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 	{
 		id: "gemini-2.5-flash",
 		name: "Gemini 2.5 Flash",
+		provider: "Google",
+		group: "Gemini 2.5",
 		description: "Fast and efficient for most tasks",
 		supportsVision: true,
 		supportsAttachments: true,
@@ -33,6 +39,8 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 	{
 		id: "gemini-2.5-pro",
 		name: "Gemini 2.5 Pro",
+		provider: "Google",
+		group: "Gemini 2.5",
 		description: "Most capable model for complex reasoning",
 		supportsVision: true,
 		supportsAttachments: true,
@@ -43,6 +51,8 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 	{
 		id: "gemini-2.0-flash",
 		name: "Gemini 2.0 Flash",
+		provider: "Google",
+		group: "Gemini 2.0",
 		description: "Previous generation model with fast responses",
 		supportsVision: true,
 		supportsAttachments: true,
