@@ -5,13 +5,7 @@ import { ThreadList } from "#/components/assistant-ui/thread-list";
 import { SettingsDialog } from "#/components/settings-dialog";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
-import {
-	Sidebar,
-	SidebarContent,
-	SidebarFooter,
-	SidebarHeader,
-	SidebarRail,
-} from "#/components/ui/sidebar";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export function ChatSidebar() {
 	const newThreadButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -33,47 +27,39 @@ export function ChatSidebar() {
 	}, []);
 
 	return (
-		<Sidebar collapsible="icon" className="border-r">
-			<SidebarHeader className="gap-3 border-b">
-				<div className="flex items-center px-2 py-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-					<span className="font-semibold text-sidebar-foreground text-sm group-data-[collapsible=icon]:hidden">
+		<div className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground">
+			<div className="flex flex-col gap-3 border-b p-2">
+				<div className="flex items-center px-2 py-1">
+					<span className="font-semibold text-sidebar-foreground text-sm">
 						GChat
-					</span>
-					<span className="hidden font-semibold text-sidebar-foreground text-sm group-data-[collapsible=icon]:inline">
-						G
 					</span>
 				</div>
 				<ThreadListPrimitive.New asChild>
 					<Button
 						ref={newThreadButtonRef}
 						variant="secondary"
-						className="h-9 justify-start gap-2 rounded-lg px-2.5 text-sm group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+						className="h-9 justify-start gap-2 rounded-lg px-2.5 text-sm"
 						title="New Chat (Ctrl/Cmd+Shift+N)"
 					>
 						<PlusIcon className="size-4" />
-						<span className="group-data-[collapsible=icon]:hidden">
-							New Chat
-						</span>
+						<span>New Chat</span>
 					</Button>
 				</ThreadListPrimitive.New>
-				<p className="truncate px-1 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+				<p className="truncate px-1 text-muted-foreground text-xs">
 					No chats yet? Start a new conversation.
 				</p>
-			</SidebarHeader>
+			</div>
 
-			<SidebarContent className="max-w-full">
+			<ScrollArea className="min-h-0 flex-1 max-w-full">
+				<ThreadList />
+			</ScrollArea>
 
-					<ThreadList />
-
-			</SidebarContent>
-
-			<SidebarFooter className="border-t">
-				<div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col">
+			<div className="border-t p-2">
+				<div className="flex items-center justify-between gap-2">
 					<SettingsDialog />
 					<ThemeToggle />
 				</div>
-			</SidebarFooter>
-			<SidebarRail />
-		</Sidebar>
+			</div>
+		</div>
 	);
 }
