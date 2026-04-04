@@ -29,6 +29,7 @@ import {
 	UserMessageAttachments,
 } from "#/components/assistant-ui/attachment";
 import { MarkdownText } from "#/components/assistant-ui/markdown-text";
+import { MessageTiming } from "#/components/assistant-ui/message-timing";
 import {
 	ComposerQuotePreview,
 	QuoteBlock,
@@ -305,6 +306,7 @@ const AssistantActionBar: FC = () => {
 					<RefreshCwIcon />
 				</TooltipIconButton>
 			</ActionBarPrimitive.Reload>
+
 			<ActionBarMorePrimitive.Root>
 				<ActionBarMorePrimitive.Trigger asChild>
 					<TooltipIconButton
@@ -327,6 +329,8 @@ const AssistantActionBar: FC = () => {
 					</ActionBarPrimitive.ExportMarkdown>
 				</ActionBarMorePrimitive.Content>
 			</ActionBarMorePrimitive.Root>
+
+			<MessageTiming />
 		</ActionBarPrimitive.Root>
 	);
 };

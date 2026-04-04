@@ -507,6 +507,9 @@ export const geminiAdapter: ChatModelAdapter = {
 		let lastStatus: ChatModelRunResult["status"] | undefined;
 		let totalUsage: LanguageModelUsage | undefined;
 		let sourceParts: SourceMessagePart[] = [];
+		const streamStartTime = Date.now();
+		let firstTokenTime: number | undefined;
+		let totalChunks = 0;
 		let hasPendingUpdate = false;
 		let textDrainerDone = false;
 		let reasoningDrainerDone = false;
@@ -588,6 +591,8 @@ export const geminiAdapter: ChatModelAdapter = {
 				try {
 					for await (const part of stream.fullStream) {
 						if (part.type === "text-delta") {
+							totalChunks += 1;
+							firstTokenTime ??= Date.now() - streamStartTime;
 							if (part.text) {
 								textTypewriter.push(part.text);
 							}
@@ -595,6 +600,8 @@ export const geminiAdapter: ChatModelAdapter = {
 						}
 
 						if (part.type === "reasoning-delta") {
+							totalChunks += 1;
+							firstTokenTime ??= Date.now() - streamStartTime;
 							if (part.text) {
 								reasoningTypewriter.push(part.text);
 							}
@@ -704,6 +711,12 @@ export const geminiAdapter: ChatModelAdapter = {
 			displayedReasoning = reasoningTypewriter.getFullText();
 
 			const tokenUsage = toTokenUsageMetadata(totalUsage);
+			const totalStreamTime = Date.now() - streamStartTime;
+			const tokenCount = totalUsage?.outputTokens;
+			const tokensPerSecond =
+				tokenCount !== undefined && totalStreamTime > 0
+					? tokenCount / (totalStreamTime / 1000)
+					: undefined;
 
 			yield {
 				content: [
@@ -711,15 +724,24 @@ export const geminiAdapter: ChatModelAdapter = {
 					...sourceParts,
 				],
 				status: lastStatus ?? { type: "complete", reason: "stop" },
-				...(tokenUsage
-					? {
-							metadata: {
+				metadata: {
+					timing: {
+						streamStartTime,
+						firstTokenTime,
+						totalStreamTime,
+						tokenCount,
+						tokensPerSecond,
+						totalChunks,
+						toolCallCount: 0,
+					},
+					...(tokenUsage
+						? {
 								custom: {
 									usage: tokenUsage,
 								},
-							},
-						}
-					: {}),
+							}
+						: {}),
+				},
 			};
 		} catch (error) {
 			if (abortSignal.aborted || isAbortError(error)) {
