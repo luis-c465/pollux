@@ -6,6 +6,16 @@ export const SETTINGS_API_KEY = "gchat-api-key";
 export const SETTINGS_MODEL = "gchat-model";
 export const SETTINGS_SYSTEM_PROMPT = "gchat-system-prompt";
 export const SETTINGS_GROUNDING = "gchat-grounding";
+export const SETTINGS_THINKING_ENABLED = "gchat-thinking-enabled";
+export const SETTINGS_THINKING_BUDGET = "gchat-thinking-budget";
+export const SETTINGS_THINKING_LEVEL = "gchat-thinking-level";
+
+export const DEFAULT_THINKING_BUDGET = 8192;
+export const MIN_THINKING_BUDGET = 0;
+export const MAX_THINKING_BUDGET = 32768;
+export const DEFAULT_THINKING_LEVEL = "medium" as const;
+
+export type ThinkingLevel = "minimal" | "low" | "medium" | "high";
 
 // ---------------------------------------------------------------------------
 // Custom event for same-tab storage notifications
@@ -84,6 +94,91 @@ export function setGroundingEnabled(enabled: boolean): void {
 }
 
 // ---------------------------------------------------------------------------
+// Gemini thinking / reasoning helpers
+// ---------------------------------------------------------------------------
+
+const isThinkingLevel = (value: string): value is ThinkingLevel => {
+	return (
+		value === "minimal" ||
+		value === "low" ||
+		value === "medium" ||
+		value === "high"
+	);
+};
+
+const clampThinkingBudget = (value: number): number => {
+	if (!Number.isFinite(value)) {
+		return DEFAULT_THINKING_BUDGET;
+	}
+
+	const normalized = Math.round(value);
+	if (normalized < MIN_THINKING_BUDGET) {
+		return MIN_THINKING_BUDGET;
+	}
+
+	if (normalized > MAX_THINKING_BUDGET) {
+		return MAX_THINKING_BUDGET;
+	}
+
+	return normalized;
+};
+
+export function getThinkingEnabled(): boolean {
+	return localStorage.getItem(SETTINGS_THINKING_ENABLED) === "true";
+}
+
+export function setThinkingEnabled(enabled: boolean): void {
+	localStorage.setItem(SETTINGS_THINKING_ENABLED, String(enabled));
+	emitSettingsChange(SETTINGS_THINKING_ENABLED);
+}
+
+export function getThinkingBudget(): number {
+	const stored = localStorage.getItem(SETTINGS_THINKING_BUDGET);
+	if (!stored) {
+		return DEFAULT_THINKING_BUDGET;
+	}
+
+	const parsed = Number.parseInt(stored, 10);
+	return clampThinkingBudget(parsed);
+}
+
+export function setThinkingBudget(budget: number): void {
+	localStorage.setItem(
+		SETTINGS_THINKING_BUDGET,
+		String(clampThinkingBudget(budget)),
+	);
+	emitSettingsChange(SETTINGS_THINKING_BUDGET);
+}
+
+export function getThinkingLevel(): ThinkingLevel {
+	const stored = localStorage.getItem(SETTINGS_THINKING_LEVEL);
+	if (!stored || !isThinkingLevel(stored)) {
+		return DEFAULT_THINKING_LEVEL;
+	}
+
+	return stored;
+}
+
+export function setThinkingLevel(level: ThinkingLevel): void {
+	localStorage.setItem(SETTINGS_THINKING_LEVEL, level);
+	emitSettingsChange(SETTINGS_THINKING_LEVEL);
+}
+
+export interface ThinkingSettings {
+	enabled: boolean;
+	budget: number;
+	level: ThinkingLevel;
+}
+
+export function getThinkingSettings(): ThinkingSettings {
+	return {
+		enabled: getThinkingEnabled(),
+		budget: getThinkingBudget(),
+		level: getThinkingLevel(),
+	};
+}
+
+// ---------------------------------------------------------------------------
 // useSettings hook — reactive access via useSyncExternalStore
 // ---------------------------------------------------------------------------
 
@@ -93,6 +188,9 @@ export interface Settings {
 	selectedModel: string;
 	systemPrompt: string;
 	groundingEnabled: boolean;
+	thinkingEnabled: boolean;
+	thinkingBudget: number;
+	thinkingLevel: ThinkingLevel;
 }
 
 function readSettings(): Settings {
@@ -102,6 +200,9 @@ function readSettings(): Settings {
 		selectedModel: getSelectedModel(),
 		systemPrompt: getSystemPrompt(),
 		groundingEnabled: getGroundingEnabled(),
+		thinkingEnabled: getThinkingEnabled(),
+		thinkingBudget: getThinkingBudget(),
+		thinkingLevel: getThinkingLevel(),
 	};
 }
 
@@ -119,7 +220,10 @@ function subscribe(callback: () => void): () => void {
 			e.key === SETTINGS_API_KEY ||
 			e.key === SETTINGS_MODEL ||
 			e.key === SETTINGS_SYSTEM_PROMPT ||
-			e.key === SETTINGS_GROUNDING
+			e.key === SETTINGS_GROUNDING ||
+			e.key === SETTINGS_THINKING_ENABLED ||
+			e.key === SETTINGS_THINKING_BUDGET ||
+			e.key === SETTINGS_THINKING_LEVEL
 		) {
 			cachedSettings = readSettings();
 			callback();
@@ -145,6 +249,9 @@ function getServerSnapshot(): Settings {
 		selectedModel: DEFAULT_MODEL,
 		systemPrompt: "",
 		groundingEnabled: false,
+		thinkingEnabled: false,
+		thinkingBudget: DEFAULT_THINKING_BUDGET,
+		thinkingLevel: DEFAULT_THINKING_LEVEL,
 	};
 }
 
@@ -182,4 +289,22 @@ export function useSystemPrompt(): [string, (prompt: string) => void] {
 export function useGroundingEnabled(): [boolean, (enabled: boolean) => void] {
 	const settings = useSettings();
 	return [settings.groundingEnabled, useCallback(setGroundingEnabled, [])];
+}
+
+export function useThinkingEnabled(): [boolean, (enabled: boolean) => void] {
+	const settings = useSettings();
+	return [settings.thinkingEnabled, useCallback(setThinkingEnabled, [])];
+}
+
+export function useThinkingBudget(): [number, (budget: number) => void] {
+	const settings = useSettings();
+	return [settings.thinkingBudget, useCallback(setThinkingBudget, [])];
+}
+
+export function useThinkingLevel(): [
+	ThinkingLevel,
+	(level: ThinkingLevel) => void,
+] {
+	const settings = useSettings();
+	return [settings.thinkingLevel, useCallback(setThinkingLevel, [])];
 }

@@ -29,6 +29,7 @@ import {
 	UserMessageAttachments,
 } from "#/components/assistant-ui/attachment";
 import { MarkdownText } from "#/components/assistant-ui/markdown-text";
+import { Reasoning } from "#/components/assistant-ui/reasoning";
 import { Sources } from "#/components/assistant-ui/sources";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "#/components/assistant-ui/tooltip-icon-button";
@@ -233,6 +234,7 @@ const AssistantMessage: FC = () => {
 			<div className="aui-assistant-message-content wrap-break-word px-2 text-foreground leading-relaxed">
 				<MessagePrimitive.Parts>
 					{({ part }) => {
+						if (part.type === "reasoning") return <Reasoning {...part} />;
 						if (part.type === "text") return <MarkdownText />;
 						if (part.type === "source") return <Sources {...part} />;
 						if (part.type === "tool-call")

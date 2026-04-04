@@ -2,13 +2,10 @@
 
 import { useAuiState, useMessagePartText } from "@assistant-ui/react";
 import { code } from "@streamdown/code";
-import { memo, useEffect, useRef } from "react";
+import { memo } from "react";
 import { Streamdown } from "streamdown";
 
 import { cn } from "#/lib/utils";
-
-const BACKLOG_THRESHOLD = 100; // characters
-const ANIMATE_OPTIONS = { duration: 15, stagger: 5, sep: "word" } as const;
 
 const MarkdownTextImpl = () => {
 	const part = useMessagePartText();

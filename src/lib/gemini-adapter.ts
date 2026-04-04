@@ -7,8 +7,12 @@ import type {
 } from "@assistant-ui/react";
 import { type ModelMessage, streamText } from "ai";
 
-import { DEFAULT_MODEL, isGeminiModel } from "@/lib/gemini-models";
-import { getGroundingEnabled } from "@/lib/settings";
+import {
+	DEFAULT_MODEL,
+	getGeminiModel,
+	isGeminiModel,
+} from "@/lib/gemini-models";
+import { getGroundingEnabled, getThinkingSettings } from "@/lib/settings";
 import {
 	createTypewriterController,
 	detectRefreshRate,
@@ -18,6 +22,7 @@ const API_KEY_STORAGE_KEY = "gchat-api-key";
 const MODEL_STORAGE_KEY = "gchat-model";
 const SYSTEM_PROMPT_STORAGE_KEY = "gchat-system-prompt";
 const TYPEWRITER_BACKLOG_THRESHOLD = 100;
+const REASONING_TYPEWRITER_BACKLOG_THRESHOLD = 120;
 
 type DataUrlPayload = {
 	mimeType: string;
@@ -317,6 +322,80 @@ const mergeSourceParts = (
 	return deduped;
 };
 
+type StreamingContentPart =
+	| {
+			type: "reasoning";
+			text: string;
+	  }
+	| {
+			type: "text";
+			text: string;
+	  };
+
+const buildStreamingContent = (
+	text: string,
+	reasoning: string,
+): StreamingContentPart[] => {
+	const reasoningParts: StreamingContentPart[] = reasoning.trim()
+		? [
+				{
+					type: "reasoning",
+					text: reasoning,
+				},
+			]
+		: [];
+
+	if (!text && reasoningParts.length > 0) {
+		return reasoningParts;
+	}
+
+	return [
+		...reasoningParts,
+		{
+			type: "text",
+			text,
+		},
+	];
+};
+
+type ThinkingConfig =
+	| {
+			includeThoughts: true;
+			thinkingBudget: number;
+	  }
+	| {
+			includeThoughts: true;
+			thinkingLevel: "minimal" | "low" | "medium" | "high";
+	  };
+
+const resolveThinkingConfig = (modelId: string): ThinkingConfig | null => {
+	const model = getGeminiModel(modelId);
+	if (!model?.supportsThinking) {
+		return null;
+	}
+
+	const thinkingSettings = getThinkingSettings();
+	if (!thinkingSettings.enabled) {
+		return null;
+	}
+
+	if (model.thinkingType === "budget") {
+		return {
+			includeThoughts: true,
+			thinkingBudget: thinkingSettings.budget,
+		};
+	}
+
+	if (model.thinkingType === "level") {
+		return {
+			includeThoughts: true,
+			thinkingLevel: thinkingSettings.level,
+		};
+	}
+
+	return null;
+};
+
 export const geminiAdapter: ChatModelAdapter = {
 	run: async function* ({ abortSignal, context, messages }) {
 		const apiKey = getStorageItem(API_KEY_STORAGE_KEY);
@@ -342,25 +421,79 @@ export const geminiAdapter: ChatModelAdapter = {
 		const selectedModel = resolveSelectedModel(context.config?.modelName);
 		const systemInstruction = getStorageItem(SYSTEM_PROMPT_STORAGE_KEY)?.trim();
 		const groundingEnabled = getGroundingEnabled();
+		const thinkingConfig = resolveThinkingConfig(selectedModel);
 		const aiMessages = messages
 			.map((message) => toAiSdkMessage(message))
 			.filter((content): content is ModelMessage => content !== null);
 
 		const google = createGoogleGenerativeAI({ apiKey });
 
-		const typewriter = createTypewriterController({
+		const textTypewriter = createTypewriterController({
 			backlogThresholdChars: TYPEWRITER_BACKLOG_THRESHOLD,
 			initialRefreshRate: 60,
 		});
+		const reasoningTypewriter = createTypewriterController({
+			backlogThresholdChars: REASONING_TYPEWRITER_BACKLOG_THRESHOLD,
+			initialRefreshRate: 60,
+		});
 		let displayedText = "";
+		let displayedReasoning = "";
 		let lastStatus: ChatModelRunResult["status"] | undefined;
 		let sourceParts: SourceMessagePart[] = [];
+		let hasPendingUpdate = false;
+		let textDrainerDone = false;
+		let reasoningDrainerDone = false;
+		let waitForUpdateResolver: (() => void) | null = null;
+
+		const notifyUpdate = () => {
+			hasPendingUpdate = true;
+			if (!waitForUpdateResolver) {
+				return;
+			}
+
+			const resolve = waitForUpdateResolver;
+			waitForUpdateResolver = null;
+			resolve();
+		};
+
+		const waitForUpdate = async (): Promise<void> => {
+			if (hasPendingUpdate || (textDrainerDone && reasoningDrainerDone)) {
+				return;
+			}
+
+			if (abortSignal.aborted) {
+				throw new DOMException("Aborted", "AbortError");
+			}
+
+			await new Promise<void>((resolve, reject) => {
+				const onAbort = () => {
+					waitForUpdateResolver = null;
+					reject(new DOMException("Aborted", "AbortError"));
+				};
+
+				waitForUpdateResolver = () => {
+					abortSignal.removeEventListener("abort", onAbort);
+					resolve();
+				};
+
+				abortSignal.addEventListener("abort", onAbort, { once: true });
+			});
+		};
 
 		try {
 			const stream = streamText({
 				abortSignal,
 				model: google(selectedModel),
 				messages: aiMessages,
+				...(thinkingConfig
+					? {
+							providerOptions: {
+								google: {
+									thinkingConfig,
+								},
+							},
+						}
+					: {}),
 				...(groundingEnabled
 					? {
 							tools: {
@@ -377,7 +510,8 @@ export const geminiAdapter: ChatModelAdapter = {
 
 			void detectRefreshRate()
 				.then((refreshRate) => {
-					typewriter.setRefreshRate(refreshRate);
+					textTypewriter.setRefreshRate(refreshRate);
+					reasoningTypewriter.setRefreshRate(refreshRate);
 				})
 				.catch(() => {
 					// Keep the default refresh rate when measurement fails.
@@ -388,7 +522,14 @@ export const geminiAdapter: ChatModelAdapter = {
 					for await (const part of stream.fullStream) {
 						if (part.type === "text-delta") {
 							if (part.text) {
-								typewriter.push(part.text);
+								textTypewriter.push(part.text);
+							}
+							continue;
+						}
+
+						if (part.type === "reasoning-delta") {
+							if (part.text) {
+								reasoningTypewriter.push(part.text);
 							}
 							continue;
 						}
@@ -434,27 +575,71 @@ export const geminiAdapter: ChatModelAdapter = {
 						}
 					}
 				} finally {
-					typewriter.complete();
+					textTypewriter.complete();
+					reasoningTypewriter.complete();
+				}
+			})();
+
+			const textDrainer = (async () => {
+				try {
+					while (true) {
+						const nextText = await textTypewriter.drainFrame(abortSignal);
+						if (nextText === null) {
+							break;
+						}
+
+						displayedText = nextText;
+						notifyUpdate();
+					}
+				} finally {
+					textDrainerDone = true;
+					notifyUpdate();
+				}
+			})();
+
+			const reasoningDrainer = (async () => {
+				try {
+					while (true) {
+						const nextReasoning =
+							await reasoningTypewriter.drainFrame(abortSignal);
+						if (nextReasoning === null) {
+							break;
+						}
+
+						displayedReasoning = nextReasoning;
+						notifyUpdate();
+					}
+				} finally {
+					reasoningDrainerDone = true;
+					notifyUpdate();
 				}
 			})();
 
 			while (true) {
-				const nextText = await typewriter.drainFrame(abortSignal);
-				if (nextText === null) {
+				if (hasPendingUpdate) {
+					hasPendingUpdate = false;
+					yield {
+						content: buildStreamingContent(displayedText, displayedReasoning),
+					};
+					continue;
+				}
+
+				if (textDrainerDone && reasoningDrainerDone) {
 					break;
 				}
 
-				displayedText = nextText;
-				yield {
-					content: [{ type: "text", text: displayedText }],
-				};
+				await waitForUpdate();
 			}
 
-			await streamPump;
-			displayedText = typewriter.getFullText();
+			await Promise.all([streamPump, textDrainer, reasoningDrainer]);
+			displayedText = textTypewriter.getFullText();
+			displayedReasoning = reasoningTypewriter.getFullText();
 
 			yield {
-				content: [{ type: "text", text: displayedText }, ...sourceParts],
+				content: [
+					...buildStreamingContent(displayedText, displayedReasoning),
+					...sourceParts,
+				],
 				status: lastStatus ?? { type: "complete", reason: "stop" },
 			};
 		} catch (error) {
@@ -463,13 +648,11 @@ export const geminiAdapter: ChatModelAdapter = {
 			}
 
 			const message = toErrorMessage(error);
+			displayedText = textTypewriter.getFullText() || displayedText || message;
+			displayedReasoning =
+				reasoningTypewriter.getFullText() || displayedReasoning;
 			yield {
-				content: [
-					{
-						type: "text",
-						text: typewriter.getFullText() || displayedText || message,
-					},
-				],
+				content: buildStreamingContent(displayedText, displayedReasoning),
 				status: {
 					type: "incomplete",
 					reason: "error",

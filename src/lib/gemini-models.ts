@@ -4,6 +4,8 @@ export interface GeminiModel {
 	description: string;
 	supportsVision: boolean;
 	supportsAttachments: boolean;
+	supportsThinking: boolean;
+	thinkingType?: "budget" | "level";
 	maxTokens: number;
 }
 
@@ -14,6 +16,8 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		description: "Fast and efficient for most tasks",
 		supportsVision: true,
 		supportsAttachments: true,
+		supportsThinking: true,
+		thinkingType: "level",
 		maxTokens: 1_048_576,
 	},
 	{
@@ -22,6 +26,8 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		description: "Fast and efficient for most tasks",
 		supportsVision: true,
 		supportsAttachments: true,
+		supportsThinking: true,
+		thinkingType: "budget",
 		maxTokens: 1_048_576,
 	},
 	{
@@ -30,6 +36,8 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		description: "Most capable model for complex reasoning",
 		supportsVision: true,
 		supportsAttachments: true,
+		supportsThinking: true,
+		thinkingType: "budget",
 		maxTokens: 1_048_576,
 	},
 	{
@@ -38,6 +46,7 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		description: "Previous generation model with fast responses",
 		supportsVision: true,
 		supportsAttachments: true,
+		supportsThinking: false,
 		maxTokens: 1_048_576,
 	},
 ];
@@ -46,4 +55,8 @@ export const DEFAULT_MODEL = "gemini-2.5-flash";
 
 export const isGeminiModel = (modelId: string): boolean => {
 	return GEMINI_MODELS.some((model) => model.id === modelId);
+};
+
+export const getGeminiModel = (modelId: string): GeminiModel | undefined => {
+	return GEMINI_MODELS.find((model) => model.id === modelId);
 };
