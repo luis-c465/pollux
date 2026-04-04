@@ -2,7 +2,7 @@
 
 import { useAuiState, useMessagePartText } from "@assistant-ui/react";
 import { createCodePlugin } from "@streamdown/code";
-import { math } from '@streamdown/math';
+import { createMathPlugin } from '@streamdown/math';
 import { mermaid } from '@streamdown/mermaid';
 import { memo } from "react";
 import { Streamdown } from "streamdown";
@@ -12,6 +12,11 @@ import { cn } from "#/lib/utils";
 
 const code = createCodePlugin({
   themes: ['github-light', 'github-dark'], // [light, dark]
+});
+
+const math = createMathPlugin({
+  singleDollarTextMath: true, // Enable $...$ syntax (default: false)
+  errorColor: '#dc2626',      // Custom error color (default: "var(--color-muted-foreground)")
 });
 
 const MarkdownTextImpl = () => {
