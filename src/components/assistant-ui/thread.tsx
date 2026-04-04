@@ -33,6 +33,7 @@ import { Reasoning } from "#/components/assistant-ui/reasoning";
 import { Sources } from "#/components/assistant-ui/sources";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "#/components/assistant-ui/tooltip-icon-button";
+import { ComposerGroundingToggle } from "#/components/composer-grounding-toggle";
 import { ComposerModelSelector } from "#/components/composer-model-selector";
 import { ComposerThinkingSelector } from "#/components/composer-thinking-selector";
 import { openSettingsDialog } from "#/components/settings-dialog";
@@ -188,6 +189,7 @@ const ComposerAction: FC = () => {
 				<ComposerAddAttachment />
 				<ComposerModelSelector />
 				<ComposerThinkingSelector />
+				<ComposerGroundingToggle />
 			</div>
 			<AuiIf condition={(s) => !s.thread.isRunning}>
 				<ComposerPrimitive.Send asChild>

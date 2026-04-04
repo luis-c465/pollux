@@ -32,7 +32,6 @@ import {
 	getApiKey,
 	removeApiKey,
 	setApiKey,
-	setGroundingEnabled,
 	setSelectedModel,
 	setSystemPrompt,
 	setThinkingEnabled,
@@ -341,25 +340,6 @@ export function SettingsDialog() {
 								This model does not support configurable thinking.
 							</p>
 						) : null}
-					</section>
-
-					<section className="flex flex-col gap-3">
-						<div className="flex items-start justify-between gap-4">
-							<div className="space-y-1">
-								<h3 className="text-sm font-semibold">
-									Google Search Grounding
-								</h3>
-								<p className="text-xs text-muted-foreground leading-relaxed">
-									When enabled, Gemini can use Google Search to ground responses
-									with up-to-date web sources.
-								</p>
-							</div>
-							<Switch
-								checked={settings.groundingEnabled}
-								onCheckedChange={(checked) => setGroundingEnabled(checked)}
-								aria-label="Toggle Google Search grounding"
-							/>
-						</div>
 					</section>
 				</div>
 			</DialogContent>
