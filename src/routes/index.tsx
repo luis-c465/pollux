@@ -16,6 +16,8 @@ import {
 } from "#/components/ui/resizable";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { useAppHotkeys } from "#/hooks/use-app-hotkeys";
+import { DEFAULT_MODEL, getGeminiModel } from "#/lib/gemini-models";
+import { useSelectedModel } from "#/lib/settings";
 
 export const Route = createFileRoute("/")({ component: App });
 
@@ -25,6 +27,11 @@ function App() {
 	const panelGroupRef = useRef<GroupImperativeHandle | null>(null);
 	const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null);
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+	const [selectedModel] = useSelectedModel();
+	const modelContextWindow =
+		getGeminiModel(selectedModel)?.contextWindow ??
+		getGeminiModel(DEFAULT_MODEL)?.contextWindow ??
+		1_048_576;
 	useAppHotkeys();
 
 	useEffect(() => {
@@ -89,6 +96,7 @@ function App() {
 							<ChatHeader
 								onToggleSidebar={toggleSidebar}
 								sidebarCollapsed={isSidebarCollapsed}
+								modelContextWindow={modelContextWindow}
 							/>
 							<div className="min-h-0 flex-1">
 								<Thread />

@@ -9,6 +9,7 @@ export interface GeminiModel {
 	supportsThinking: boolean;
 	thinkingType?: "budget" | "level";
 	maxTokens: number;
+	contextWindow: number;
 }
 
 export const GEMINI_MODELS: readonly GeminiModel[] = [
@@ -23,6 +24,7 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		supportsThinking: true,
 		thinkingType: "level",
 		maxTokens: 1_048_576,
+		contextWindow: 1_048_576,
 	},
 	{
 		id: "gemini-2.5-flash",
@@ -35,6 +37,7 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		supportsThinking: true,
 		thinkingType: "budget",
 		maxTokens: 1_048_576,
+		contextWindow: 1_048_576,
 	},
 	{
 		id: "gemini-2.5-pro",
@@ -47,6 +50,7 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		supportsThinking: true,
 		thinkingType: "budget",
 		maxTokens: 1_048_576,
+		contextWindow: 1_048_576,
 	},
 	{
 		id: "gemini-2.0-flash",
@@ -58,6 +62,7 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		supportsAttachments: true,
 		supportsThinking: false,
 		maxTokens: 1_048_576,
+		contextWindow: 1_048_576,
 	},
 ];
 

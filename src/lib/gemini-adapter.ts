@@ -5,7 +5,7 @@ import type {
 	SourceMessagePart,
 	ThreadMessage,
 } from "@assistant-ui/react";
-import { type ModelMessage, streamText } from "ai";
+import { type LanguageModelUsage, type ModelMessage, streamText } from "ai";
 
 import {
 	DEFAULT_MODEL,
@@ -424,6 +424,44 @@ const resolveThinkingConfig = (modelId: string): ThinkingConfig | null => {
 	return null;
 };
 
+const toTokenUsageMetadata = (
+	usage: LanguageModelUsage | undefined,
+):
+	| {
+			totalTokens?: number;
+			inputTokens?: number;
+			outputTokens?: number;
+			reasoningTokens?: number;
+			cachedInputTokens?: number;
+	  }
+	| undefined => {
+	if (!usage) {
+		return undefined;
+	}
+
+	const tokenUsage = {
+		totalTokens: usage.totalTokens,
+		inputTokens: usage.inputTokens,
+		outputTokens: usage.outputTokens,
+		reasoningTokens:
+			usage.outputTokenDetails.reasoningTokens ?? usage.reasoningTokens,
+		cachedInputTokens:
+			usage.inputTokenDetails.cacheReadTokens ?? usage.cachedInputTokens,
+	};
+
+	if (
+		tokenUsage.totalTokens === undefined &&
+		tokenUsage.inputTokens === undefined &&
+		tokenUsage.outputTokens === undefined &&
+		tokenUsage.reasoningTokens === undefined &&
+		tokenUsage.cachedInputTokens === undefined
+	) {
+		return undefined;
+	}
+
+	return tokenUsage;
+};
+
 export const geminiAdapter: ChatModelAdapter = {
 	run: async function* ({ abortSignal, context, messages }) {
 		const apiKey = getStorageItem(API_KEY_STORAGE_KEY);
@@ -467,6 +505,7 @@ export const geminiAdapter: ChatModelAdapter = {
 		let displayedText = "";
 		let displayedReasoning = "";
 		let lastStatus: ChatModelRunResult["status"] | undefined;
+		let totalUsage: LanguageModelUsage | undefined;
 		let sourceParts: SourceMessagePart[] = [];
 		let hasPendingUpdate = false;
 		let textDrainerDone = false;
@@ -595,6 +634,7 @@ export const geminiAdapter: ChatModelAdapter = {
 
 						if (part.type === "finish") {
 							lastStatus = mapFinishReasonToStatus(part.finishReason);
+							totalUsage = part.totalUsage;
 							continue;
 						}
 
@@ -663,12 +703,23 @@ export const geminiAdapter: ChatModelAdapter = {
 			displayedText = textTypewriter.getFullText();
 			displayedReasoning = reasoningTypewriter.getFullText();
 
+			const tokenUsage = toTokenUsageMetadata(totalUsage);
+
 			yield {
 				content: [
 					...buildStreamingContent(displayedText, displayedReasoning),
 					...sourceParts,
 				],
 				status: lastStatus ?? { type: "complete", reason: "stop" },
+				...(tokenUsage
+					? {
+							metadata: {
+								custom: {
+									usage: tokenUsage,
+								},
+							},
+						}
+					: {}),
 			};
 		} catch (error) {
 			if (abortSignal.aborted || isAbortError(error)) {
