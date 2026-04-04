@@ -6,7 +6,9 @@ import {
 	type ComponentProps,
 	memo,
 	type PropsWithChildren,
+	useCallback,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
 import { MarkdownText } from "#/components/assistant-ui/markdown-text";
@@ -112,19 +114,71 @@ function ReasoningFade({ className, ...props }: ComponentProps<"div">) {
 }
 
 const ReasoningImpl = ({ className }: ReasoningProps) => {
-	const isStreaming = useAuiState((s) => s.message.status?.type === "running");
-	const [open, setOpen] = useState(isStreaming);
+	const messageStatusType = useAuiState(
+		(s) => s.message.status?.type ?? "idle",
+	);
+	const lastPartType = useAuiState(
+		(s) => s.message.parts.at(-1)?.type ?? "none",
+	);
+	const isReasoningStreaming =
+		messageStatusType === "running" && lastPartType === "reasoning";
+	const [open, setOpen] = useState(isReasoningStreaming);
+	const isHoveringRef = useRef(false);
+	const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const skipAutoDismissRef = useRef(false);
+
+	const clearDismissTimeout = useCallback(() => {
+		if (dismissTimeoutRef.current === null) return;
+		clearTimeout(dismissTimeoutRef.current);
+		dismissTimeoutRef.current = null;
+	}, []);
 
 	useEffect(() => {
-		if (isStreaming) {
+		if (isReasoningStreaming) {
+			clearDismissTimeout();
+			skipAutoDismissRef.current = false;
 			setOpen(true);
+			return;
 		}
-	}, [isStreaming]);
+
+		if (skipAutoDismissRef.current) return;
+
+		clearDismissTimeout();
+		dismissTimeoutRef.current = setTimeout(() => {
+			dismissTimeoutRef.current = null;
+			if (isHoveringRef.current) {
+				skipAutoDismissRef.current = true;
+				return;
+			}
+
+			setOpen(false);
+		}, 300);
+
+		return clearDismissTimeout;
+	}, [clearDismissTimeout, isReasoningStreaming]);
+
+	useEffect(() => {
+		return clearDismissTimeout;
+	}, [clearDismissTimeout]);
+
+	const handleMouseEnter = () => {
+		isHoveringRef.current = true;
+	};
+
+	const handleMouseLeave = () => {
+		isHoveringRef.current = false;
+	};
 
 	return (
-		<ReasoningRoot className={className} open={open} onOpenChange={setOpen}>
-			<ReasoningTrigger active={isStreaming} />
-			<ReasoningContent aria-busy={isStreaming}>
+		<ReasoningRoot
+			className={className}
+			onMouseEnter={handleMouseEnter}
+			onMouseLeave={handleMouseLeave}
+			open={open}
+			onOpenChange={setOpen}
+		>
+			<ReasoningTrigger active={isReasoningStreaming} />
+			<ReasoningContent aria-busy={isReasoningStreaming}>
 				<ReasoningText>
 					<MarkdownText />
 				</ReasoningText>
