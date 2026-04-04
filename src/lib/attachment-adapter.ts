@@ -75,8 +75,10 @@ class ImageAttachmentAdapter implements AttachmentAdapter {
 			);
 		}
 
+		const { file: _file, ...rest } = attachment;
+
 		return {
-			...attachment,
+			...rest,
 			status: { type: "complete" },
 			content: [
 				{
@@ -118,9 +120,10 @@ class DocumentAttachmentAdapter implements AttachmentAdapter {
 		const data = TEXT_DOCUMENT_MIME_TYPES.has(mimeType)
 			? await readFileAsText(attachment.file)
 			: await readFileAsDataUrl(attachment.file);
+		const { file: _file, ...rest } = attachment;
 
 		return {
-			...attachment,
+			...rest,
 			status: { type: "complete" },
 			content: [
 				{

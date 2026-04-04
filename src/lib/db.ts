@@ -65,6 +65,10 @@ export const serializeMessage = (
 	item: ExportedMessageRepositoryItem,
 ): StoredMessage => {
 	const createdAt = item.message.createdAt.getTime();
+	const attachments = item.message.attachments?.map((attachment) => {
+		const { file: _file, ...rest } = attachment;
+		return rest;
+	});
 
 	return {
 		id: item.message.id ?? crypto.randomUUID(),
@@ -73,9 +77,7 @@ export const serializeMessage = (
 		role: item.message.role,
 		content: JSON.stringify(item.message.content),
 		createdAt,
-		attachments: item.message.attachments
-			? JSON.stringify(item.message.attachments)
-			: undefined,
+		attachments: attachments ? JSON.stringify(attachments) : undefined,
 		status: item.message.status
 			? JSON.stringify(item.message.status)
 			: undefined,
