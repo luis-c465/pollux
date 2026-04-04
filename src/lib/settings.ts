@@ -13,6 +13,8 @@ import {
 export const SETTINGS_API_KEY = "gchat-api-key";
 export const SETTINGS_MODEL = "gchat-model";
 export const SETTINGS_SYSTEM_PROMPT = "gchat-system-prompt";
+export const SETTINGS_TITLE_MODEL = "gchat-title-model";
+export const SETTINGS_TITLE_SYSTEM_PROMPT = "gchat-title-system-prompt";
 export const SETTINGS_GROUNDING = "gchat-grounding";
 export const SETTINGS_THINKING_ENABLED = "gchat-thinking-enabled";
 export const SETTINGS_THINKING_BUDGET = "gchat-thinking-budget";
@@ -23,6 +25,9 @@ export const DEFAULT_THINKING_BUDGET = 8192;
 export const MIN_THINKING_BUDGET = 0;
 export const MAX_THINKING_BUDGET = 32768;
 export const DEFAULT_THINKING_LEVEL = "medium" as const;
+export const DEFAULT_TITLE_MODEL = "gemini-3.1-flash-lite-preview";
+export const DEFAULT_TITLE_SYSTEM_PROMPT =
+	"Generate a short, descriptive title for this conversation. Use 2-6 words that capture the main topic. Reply with only the title.";
 
 export type ThinkingLevel = "minimal" | "low" | "medium" | "high";
 
@@ -87,6 +92,36 @@ export function getSystemPrompt(): string {
 export function setSystemPrompt(prompt: string): void {
 	localStorage.setItem(SETTINGS_SYSTEM_PROMPT, prompt);
 	emitSettingsChange(SETTINGS_SYSTEM_PROMPT);
+}
+
+// ---------------------------------------------------------------------------
+// Title generation helpers
+// ---------------------------------------------------------------------------
+
+export function getTitleModel(): string {
+	const stored = localStorage.getItem(SETTINGS_TITLE_MODEL);
+	if (stored && isGeminiModel(stored)) {
+		return stored;
+	}
+
+	return DEFAULT_TITLE_MODEL;
+}
+
+export function setTitleModel(modelId: string): void {
+	localStorage.setItem(SETTINGS_TITLE_MODEL, modelId);
+	emitSettingsChange(SETTINGS_TITLE_MODEL);
+}
+
+export function getTitleSystemPrompt(): string {
+	return (
+		localStorage.getItem(SETTINGS_TITLE_SYSTEM_PROMPT) ??
+		DEFAULT_TITLE_SYSTEM_PROMPT
+	);
+}
+
+export function setTitleSystemPrompt(prompt: string): void {
+	localStorage.setItem(SETTINGS_TITLE_SYSTEM_PROMPT, prompt);
+	emitSettingsChange(SETTINGS_TITLE_SYSTEM_PROMPT);
 }
 
 // ---------------------------------------------------------------------------
@@ -236,6 +271,8 @@ export interface Settings {
 	hasApiKey: boolean;
 	selectedModel: string;
 	systemPrompt: string;
+	titleModel: string;
+	titleSystemPrompt: string;
 	groundingEnabled: boolean;
 	thinkingEnabled: boolean;
 	thinkingBudget: number;
@@ -249,6 +286,8 @@ function readSettings(): Settings {
 		hasApiKey: hasApiKey(),
 		selectedModel: getSelectedModel(),
 		systemPrompt: getSystemPrompt(),
+		titleModel: getTitleModel(),
+		titleSystemPrompt: getTitleSystemPrompt(),
 		groundingEnabled: getGroundingEnabled(),
 		thinkingEnabled: getThinkingEnabled(),
 		thinkingBudget: getThinkingBudget(),
@@ -271,6 +310,8 @@ function subscribe(callback: () => void): () => void {
 			e.key === SETTINGS_API_KEY ||
 			e.key === SETTINGS_MODEL ||
 			e.key === SETTINGS_SYSTEM_PROMPT ||
+			e.key === SETTINGS_TITLE_MODEL ||
+			e.key === SETTINGS_TITLE_SYSTEM_PROMPT ||
 			e.key === SETTINGS_GROUNDING ||
 			e.key === SETTINGS_THINKING_ENABLED ||
 			e.key === SETTINGS_THINKING_BUDGET ||
@@ -300,6 +341,8 @@ function getServerSnapshot(): Settings {
 		hasApiKey: false,
 		selectedModel: DEFAULT_MODEL,
 		systemPrompt: "",
+		titleModel: DEFAULT_TITLE_MODEL,
+		titleSystemPrompt: DEFAULT_TITLE_SYSTEM_PROMPT,
 		groundingEnabled: false,
 		thinkingEnabled: false,
 		thinkingBudget: DEFAULT_THINKING_BUDGET,
@@ -337,6 +380,16 @@ export function useSelectedModel(): [string, (modelId: string) => void] {
 export function useSystemPrompt(): [string, (prompt: string) => void] {
 	const settings = useSettings();
 	return [settings.systemPrompt, useCallback(setSystemPrompt, [])];
+}
+
+export function useTitleModel(): [string, (modelId: string) => void] {
+	const settings = useSettings();
+	return [settings.titleModel, useCallback(setTitleModel, [])];
+}
+
+export function useTitleSystemPrompt(): [string, (prompt: string) => void] {
+	const settings = useSettings();
+	return [settings.titleSystemPrompt, useCallback(setTitleSystemPrompt, [])];
 }
 
 export function useGroundingEnabled(): [boolean, (enabled: boolean) => void] {

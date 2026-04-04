@@ -27,6 +27,18 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		contextWindow: 1_048_576,
 	},
 	{
+		id: "gemini-3.1-flash-lite-preview",
+		name: "Gemini 3.1 Flash Lite",
+		provider: "Google",
+		group: "Gemini 3",
+		description: "Lightweight model for fast utility tasks",
+		supportsVision: true,
+		supportsAttachments: true,
+		supportsThinking: false,
+		maxTokens: 1_048_576,
+		contextWindow: 1_048_576,
+	},
+	{
 		id: "gemini-2.5-flash",
 		name: "Gemini 2.5 Flash",
 		provider: "Google",

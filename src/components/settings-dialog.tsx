@@ -31,12 +31,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { Textarea } from "#/components/ui/textarea";
 import { GEMINI_MODELS, getGeminiModel } from "#/lib/gemini-models";
 import {
+	DEFAULT_TITLE_SYSTEM_PROMPT,
 	getApiKey,
 	removeApiKey,
 	setApiKey,
 	setSelectedModel,
 	setSystemPrompt,
 	setThinkingEnabled,
+	setTitleModel,
+	setTitleSystemPrompt,
 	useSettings,
 } from "#/lib/settings";
 import { cn } from "#/lib/utils";
@@ -65,6 +68,12 @@ export function SettingsDialog() {
 	const systemPromptDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(
 		null,
 	);
+	const [titleSystemPromptInput, setTitleSystemPromptInput] = useState(
+		settings.titleSystemPrompt,
+	);
+	const titleSystemPromptDebounceRef = useRef<ReturnType<
+		typeof setTimeout
+	> | null>(null);
 
 	// Re-sync local fields when dialog opens
 	const handleOpenChange = useCallback(
@@ -74,11 +83,12 @@ export function SettingsDialog() {
 				setShowApiKey(false);
 				setApiKeySaved(false);
 				setSystemPromptInput(settings.systemPrompt);
+				setTitleSystemPromptInput(settings.titleSystemPrompt);
 				setActiveTab("general");
 			}
 			setOpen(isOpen);
 		},
-		[settings.systemPrompt],
+		[settings.systemPrompt, settings.titleSystemPrompt],
 	);
 
 	// -------------------------------------------------------------------------
@@ -127,6 +137,26 @@ export function SettingsDialog() {
 		setSystemPrompt("");
 	}
 
+	function handleTitleSystemPromptChange(value: string) {
+		setTitleSystemPromptInput(value);
+		if (titleSystemPromptDebounceRef.current)
+			clearTimeout(titleSystemPromptDebounceRef.current);
+		titleSystemPromptDebounceRef.current = setTimeout(() => {
+			setTitleSystemPrompt(value);
+		}, 500);
+	}
+
+	function handleTitleSystemPromptBlur() {
+		if (titleSystemPromptDebounceRef.current)
+			clearTimeout(titleSystemPromptDebounceRef.current);
+		setTitleSystemPrompt(titleSystemPromptInput);
+	}
+
+	function handleResetTitleSystemPrompt() {
+		setTitleSystemPromptInput(DEFAULT_TITLE_SYSTEM_PROMPT);
+		setTitleSystemPrompt(DEFAULT_TITLE_SYSTEM_PROMPT);
+	}
+
 	const apiKeyLooksUnusual =
 		apiKeyInput.trim().length > 0 &&
 		(!apiKeyInput.trim().startsWith("AI") || apiKeyInput.trim().length < 30);
@@ -170,6 +200,7 @@ export function SettingsDialog() {
 				<Tabs value={activeTab} onValueChange={setActiveTab} className="py-2">
 					<TabsList className="w-full justify-start">
 						<TabsTrigger value="general">General</TabsTrigger>
+						<TabsTrigger value="title-generation">Title Generation</TabsTrigger>
 						<TabsTrigger value="shortcuts">Keyboard Shortcuts</TabsTrigger>
 					</TabsList>
 
@@ -353,6 +384,68 @@ export function SettingsDialog() {
 										This model does not support configurable thinking.
 									</p>
 								) : null}
+							</section>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="title-generation" className="mt-6">
+						<div className="flex flex-col gap-6">
+							<section className="flex flex-col gap-3">
+								<h3 className="text-sm font-semibold">Title Model</h3>
+								<div className="flex flex-col gap-1.5">
+									<Label htmlFor="title-model-select" className="sr-only">
+										Select title model
+									</Label>
+									<Select
+										value={settings.titleModel}
+										onValueChange={(value) => setTitleModel(value)}
+									>
+										<SelectTrigger id="title-model-select" className="w-full">
+											<SelectValue placeholder="Select a model" />
+										</SelectTrigger>
+										<SelectContent>
+											{GEMINI_MODELS.map((model) => (
+												<SelectItem key={model.id} value={model.id}>
+													<div className="flex flex-col items-start">
+														<span className="font-medium">{model.name}</span>
+														<span className="text-xs text-muted-foreground">
+															{model.description}
+														</span>
+													</div>
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</section>
+
+							<section className="flex flex-col gap-3">
+								<div className="flex items-center justify-between">
+									<h3 className="text-sm font-semibold">Title System Prompt</h3>
+									{titleSystemPromptInput !== DEFAULT_TITLE_SYSTEM_PROMPT && (
+										<Button
+											variant="ghost"
+											size="sm"
+											className="h-7 px-2 text-xs text-muted-foreground"
+											onClick={handleResetTitleSystemPrompt}
+										>
+											Reset
+										</Button>
+									)}
+								</div>
+								<Textarea
+									value={titleSystemPromptInput}
+									onChange={(e) =>
+										handleTitleSystemPromptChange(e.target.value)
+									}
+									onBlur={handleTitleSystemPromptBlur}
+									className="min-h-28 resize-none text-sm"
+									spellCheck={false}
+								/>
+								<p className="text-xs text-muted-foreground">
+									This prompt is used to generate short titles from the first
+									user message in each chat.
+								</p>
 							</section>
 						</div>
 					</TabsContent>
