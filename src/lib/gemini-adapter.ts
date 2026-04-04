@@ -9,10 +9,15 @@ import { type ModelMessage, streamText } from "ai";
 
 import { DEFAULT_MODEL, isGeminiModel } from "@/lib/gemini-models";
 import { getGroundingEnabled } from "@/lib/settings";
+import {
+	createTypewriterController,
+	detectRefreshRate,
+} from "@/lib/typewriter";
 
 const API_KEY_STORAGE_KEY = "gchat-api-key";
 const MODEL_STORAGE_KEY = "gchat-model";
 const SYSTEM_PROMPT_STORAGE_KEY = "gchat-system-prompt";
+const TYPEWRITER_BACKLOG_THRESHOLD = 100;
 
 type DataUrlPayload = {
 	mimeType: string;
@@ -343,7 +348,11 @@ export const geminiAdapter: ChatModelAdapter = {
 
 		const google = createGoogleGenerativeAI({ apiKey });
 
-		let accumulatedText = "";
+		const typewriter = createTypewriterController({
+			backlogThresholdChars: TYPEWRITER_BACKLOG_THRESHOLD,
+			initialRefreshRate: 60,
+		});
+		let displayedText = "";
 		let lastStatus: ChatModelRunResult["status"] | undefined;
 		let sourceParts: SourceMessagePart[] = [];
 
@@ -366,71 +375,88 @@ export const geminiAdapter: ChatModelAdapter = {
 					: {}),
 			});
 
-			for await (const part of stream.fullStream) {
-				if (part.type === "text-delta") {
-					if (part.text) {
-						accumulatedText += part.text;
-					}
+			void detectRefreshRate()
+				.then((refreshRate) => {
+					typewriter.setRefreshRate(refreshRate);
+				})
+				.catch(() => {
+					// Keep the default refresh rate when measurement fails.
+				});
 
-					yield {
-						content: [{ type: "text", text: accumulatedText }],
-						...(lastStatus ? { status: lastStatus } : {}),
-					};
-					continue;
-				}
-
-				if (part.type === "source") {
-					const source = toSourcePart(part);
-					if (source) {
-						sourceParts = mergeSourceParts(sourceParts, [source]);
-					}
-					continue;
-				}
-
-				if (part.type === "finish-step") {
-					const groundingChunks = (
-						part.providerMetadata as {
-							google?: {
-								groundingMetadata?: {
-									groundingChunks?: readonly (
-										| { web?: { uri?: string; title?: string } }
-										| undefined
-									)[];
-								};
-							};
+			const streamPump = (async () => {
+				try {
+					for await (const part of stream.fullStream) {
+						if (part.type === "text-delta") {
+							if (part.text) {
+								typewriter.push(part.text);
+							}
+							continue;
 						}
-					).google?.groundingMetadata?.groundingChunks;
 
-					if (groundingChunks?.length) {
-						sourceParts = mergeSourceParts(
-							sourceParts,
-							toSourceParts(groundingChunks),
-						);
+						if (part.type === "source") {
+							const source = toSourcePart(part);
+							if (source) {
+								sourceParts = mergeSourceParts(sourceParts, [source]);
+							}
+							continue;
+						}
+
+						if (part.type === "finish-step") {
+							const groundingChunks = (
+								part.providerMetadata as {
+									google?: {
+										groundingMetadata?: {
+											groundingChunks?: readonly (
+												| { web?: { uri?: string; title?: string } }
+												| undefined
+											)[];
+										};
+									};
+								}
+							).google?.groundingMetadata?.groundingChunks;
+
+							if (groundingChunks?.length) {
+								sourceParts = mergeSourceParts(
+									sourceParts,
+									toSourceParts(groundingChunks),
+								);
+							}
+							continue;
+						}
+
+						if (part.type === "finish") {
+							lastStatus = mapFinishReasonToStatus(part.finishReason);
+							continue;
+						}
+
+						if (part.type === "error") {
+							throw part.error;
+						}
 					}
-					continue;
+				} finally {
+					typewriter.complete();
+				}
+			})();
+
+			while (true) {
+				const nextText = await typewriter.drainFrame(abortSignal);
+				if (nextText === null) {
+					break;
 				}
 
-				if (part.type === "finish") {
-					lastStatus = mapFinishReasonToStatus(part.finishReason);
-					continue;
-				}
-
-				if (part.type === "error") {
-					throw part.error;
-				}
-			}
-
-			if (sourceParts.length > 0) {
+				displayedText = nextText;
 				yield {
-					content: [{ type: "text", text: accumulatedText }, ...sourceParts],
-					status: lastStatus ?? { type: "complete", reason: "stop" },
-				};
-			} else if (!lastStatus) {
-				yield {
-					content: [{ type: "text", text: accumulatedText }],
-					status: { type: "complete", reason: "stop" },
+					content: [{ type: "text", text: displayedText }],
 				};
 			}
+
+			await streamPump;
+			displayedText = typewriter.getFullText();
+
+			yield {
+				content: [{ type: "text", text: displayedText }, ...sourceParts],
+				status: lastStatus ?? { type: "complete", reason: "stop" },
+			};
 		} catch (error) {
 			if (abortSignal.aborted || isAbortError(error)) {
 				return;
@@ -441,7 +467,7 @@ export const geminiAdapter: ChatModelAdapter = {
 				content: [
 					{
 						type: "text",
-						text: accumulatedText || message,
+						text: typewriter.getFullText() || displayedText || message,
 					},
 				],
 				status: {
