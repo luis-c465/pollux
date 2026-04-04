@@ -64,7 +64,7 @@ function ContextDisplayBar({
 					)}
 				>
 					<span className="text-muted-foreground">Context</span>
-					<div className="h-1.5 w-28 overflow-hidden rounded-full bg-muted">
+					<div className="h-1.5 w-24 overflow-hidden rounded-full bg-muted">
 						<div
 							className={cn(
 								"h-full transition-[width]",
