@@ -1,9 +1,11 @@
 import { GlobeIcon } from "lucide-react";
+import { useEffect } from "react";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "#/components/ui/tooltip";
+import { TOGGLE_GROUNDING_EVENT } from "#/lib/keyboard-shortcuts";
 import { setGroundingEnabled, useSettings } from "#/lib/settings";
 import { cn } from "#/lib/utils";
 
@@ -12,6 +14,17 @@ export function ComposerGroundingToggle() {
 	const tooltipText = settings.groundingEnabled
 		? "Google Search grounding: enabled"
 		: "Google Search grounding: disabled";
+
+	useEffect(() => {
+		const handleToggleGrounding = () => {
+			setGroundingEnabled(!settings.groundingEnabled);
+		};
+
+		window.addEventListener(TOGGLE_GROUNDING_EVENT, handleToggleGrounding);
+		return () => {
+			window.removeEventListener(TOGGLE_GROUNDING_EVENT, handleToggleGrounding);
+		};
+	}, [settings.groundingEnabled]);
 
 	return (
 		<Tooltip>

@@ -1,5 +1,5 @@
 import { BrainIcon, ChevronsUpDownIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Label } from "#/components/ui/label";
 import {
 	Popover,
@@ -15,6 +15,10 @@ import {
 } from "#/components/ui/select";
 import { Slider } from "#/components/ui/slider";
 import { getGeminiModel } from "#/lib/gemini-models";
+import {
+	focusChatInput,
+	OPEN_THINKING_SELECTOR_EVENT,
+} from "#/lib/keyboard-shortcuts";
 import {
 	MAX_THINKING_BUDGET,
 	MIN_THINKING_BUDGET,
@@ -39,18 +43,86 @@ function formatBudget(value: number): string {
 
 export function ComposerThinkingSelector() {
 	const [open, setOpen] = useState(false);
+	const [selectOpen, setSelectOpen] = useState(false);
+	const openFromShortcutRef = useRef(false);
+	const popoverContentRef = useRef<HTMLDivElement | null>(null);
 	const settings = useSettings();
 	const selectedModel = getGeminiModel(settings.selectedModel);
 
+	useEffect(() => {
+		if (!selectedModel?.supportsThinking || !settings.thinkingEnabled) {
+			openFromShortcutRef.current = false;
+			setOpen(false);
+			setSelectOpen(false);
+			return;
+		}
+
+		const handleOpenThinkingSelector = () => {
+			openFromShortcutRef.current = true;
+			if (selectedModel.thinkingType === "budget") {
+				setOpen(true);
+				return;
+			}
+
+			if (selectedModel.thinkingType === "level") {
+				setSelectOpen(true);
+			}
+		};
+
+		window.addEventListener(
+			OPEN_THINKING_SELECTOR_EVENT,
+			handleOpenThinkingSelector,
+		);
+
+		return () => {
+			window.removeEventListener(
+				OPEN_THINKING_SELECTOR_EVENT,
+				handleOpenThinkingSelector,
+			);
+		};
+	}, [selectedModel, settings.thinkingEnabled]);
+
 	if (!selectedModel?.supportsThinking || !settings.thinkingEnabled) {
 		return null;
+	}
+
+	function handlePopoverOpenChange(nextOpen: boolean) {
+		setOpen(nextOpen);
+
+		if (nextOpen && openFromShortcutRef.current) {
+			requestAnimationFrame(() => {
+				popoverContentRef.current
+					?.querySelector<HTMLElement>("[data-slot='slider-thumb']")
+					?.focus();
+			});
+		}
+
+		if (!nextOpen && openFromShortcutRef.current) {
+			openFromShortcutRef.current = false;
+			focusChatInput();
+		}
 	}
 
 	if (selectedModel.thinkingType === "level") {
 		return (
 			<Select
 				value={settings.thinkingLevel}
-				onValueChange={(value) => setThinkingLevel(value as ThinkingLevel)}
+				open={selectOpen}
+				onValueChange={(value) => {
+					setThinkingLevel(value as ThinkingLevel);
+					setSelectOpen(false);
+					if (openFromShortcutRef.current) {
+						openFromShortcutRef.current = false;
+						focusChatInput();
+					}
+				}}
+				onOpenChange={(nextOpen) => {
+					setSelectOpen(nextOpen);
+					if (!nextOpen && openFromShortcutRef.current) {
+						openFromShortcutRef.current = false;
+						focusChatInput();
+					}
+				}}
 			>
 				<SelectTrigger className="h-8 min-w-32 gap-2 px-3 text-sm">
 					<BrainIcon className="size-3.5 text-muted-foreground" />
@@ -71,7 +143,7 @@ export function ComposerThinkingSelector() {
 	}
 
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		<Popover open={open} onOpenChange={handlePopoverOpenChange}>
 			<PopoverTrigger asChild>
 				<button
 					type="button"
@@ -82,7 +154,12 @@ export function ComposerThinkingSelector() {
 					<ChevronsUpDownIcon className="size-3.5 text-muted-foreground" />
 				</button>
 			</PopoverTrigger>
-			<PopoverContent side="top" align="start" className="w-72 space-y-3 p-3">
+			<PopoverContent
+				ref={popoverContentRef}
+				side="top"
+				align="start"
+				className="w-72 space-y-3 p-3"
+			>
 				<div className="flex items-center justify-between gap-2">
 					<Label htmlFor="composer-thinking-budget">Thinking Budget</Label>
 					<span className="font-medium text-sm tabular-nums">
@@ -102,6 +179,11 @@ export function ComposerThinkingSelector() {
 						}
 
 						setThinkingBudget(value);
+					}}
+					onValueCommit={() => {
+						if (openFromShortcutRef.current) {
+							handlePopoverOpenChange(false);
+						}
 					}}
 				/>
 			</PopoverContent>

@@ -1,5 +1,5 @@
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	Command,
 	CommandEmpty,
@@ -15,6 +15,10 @@ import {
 	PopoverTrigger,
 } from "#/components/ui/popover";
 import { GEMINI_MODELS } from "#/lib/gemini-models";
+import {
+	focusChatInput,
+	OPEN_MODEL_PICKER_EVENT,
+} from "#/lib/keyboard-shortcuts";
 import { setSelectedModel, useSettings } from "#/lib/settings";
 import { cn } from "#/lib/utils";
 
@@ -36,14 +40,46 @@ function groupModels() {
 
 export function ComposerModelSelector() {
 	const [open, setOpen] = useState(false);
+	const openFromShortcutRef = useRef(false);
+	const contentRef = useRef<HTMLDivElement | null>(null);
 	const settings = useSettings();
 	const selectedModel =
 		GEMINI_MODELS.find((model) => model.id === settings.selectedModel) ??
 		GEMINI_MODELS[0];
 	const groupedModels = useMemo(() => groupModels(), []);
 
+	useEffect(() => {
+		const handleOpenModelPicker = () => {
+			openFromShortcutRef.current = true;
+			setOpen(true);
+		};
+
+		window.addEventListener(OPEN_MODEL_PICKER_EVENT, handleOpenModelPicker);
+		return () => {
+			window.removeEventListener(
+				OPEN_MODEL_PICKER_EVENT,
+				handleOpenModelPicker,
+			);
+		};
+	}, []);
+
+	function handleOpenChange(nextOpen: boolean) {
+		setOpen(nextOpen);
+
+		if (nextOpen && openFromShortcutRef.current) {
+			requestAnimationFrame(() => {
+				contentRef.current?.querySelector<HTMLInputElement>("input")?.focus();
+			});
+		}
+
+		if (!nextOpen && openFromShortcutRef.current) {
+			openFromShortcutRef.current = false;
+			focusChatInput();
+		}
+	}
+
 	return (
-		<Popover open={open} onOpenChange={setOpen}>
+		<Popover open={open} onOpenChange={handleOpenChange}>
 			<PopoverTrigger asChild>
 				<button
 					type="button"
@@ -53,7 +89,12 @@ export function ComposerModelSelector() {
 					<ChevronsUpDownIcon className="size-3.5 text-muted-foreground" />
 				</button>
 			</PopoverTrigger>
-			<PopoverContent side="top" align="start" className="w-[360px] p-0">
+			<PopoverContent
+				ref={contentRef}
+				side="top"
+				align="start"
+				className="w-[360px] p-0"
+			>
 				<Command>
 					<CommandInput placeholder="Search models..." />
 					<CommandList>
@@ -71,7 +112,7 @@ export function ComposerModelSelector() {
 												value={`${model.name} ${model.id} ${model.provider} ${model.description}`}
 												onSelect={() => {
 													setSelectedModel(model.id);
-													setOpen(false);
+													handleOpenChange(false);
 												}}
 												className="flex items-start justify-between gap-3 px-3 py-2"
 											>

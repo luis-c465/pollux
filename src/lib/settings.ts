@@ -1,5 +1,13 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { DEFAULT_MODEL, isGeminiModel } from "#/lib/gemini-models";
+import {
+	DEFAULT_SHORTCUT_BINDINGS,
+	dedupeShortcutBindings,
+	normalizeShortcutBindings,
+	type ShortcutAction,
+	type ShortcutBinding,
+	type ShortcutBindings,
+} from "#/lib/keyboard-shortcuts";
 
 // localStorage keys
 export const SETTINGS_API_KEY = "gchat-api-key";
@@ -9,6 +17,7 @@ export const SETTINGS_GROUNDING = "gchat-grounding";
 export const SETTINGS_THINKING_ENABLED = "gchat-thinking-enabled";
 export const SETTINGS_THINKING_BUDGET = "gchat-thinking-budget";
 export const SETTINGS_THINKING_LEVEL = "gchat-thinking-level";
+export const SETTINGS_SHORTCUTS = "gchat-shortcuts";
 
 export const DEFAULT_THINKING_BUDGET = 8192;
 export const MIN_THINKING_BUDGET = 0;
@@ -179,6 +188,46 @@ export function getThinkingSettings(): ThinkingSettings {
 }
 
 // ---------------------------------------------------------------------------
+// Keyboard shortcut helpers
+// ---------------------------------------------------------------------------
+
+export function getShortcutBindings(): ShortcutBindings {
+	const stored = localStorage.getItem(SETTINGS_SHORTCUTS);
+	if (!stored) {
+		return DEFAULT_SHORTCUT_BINDINGS;
+	}
+
+	try {
+		const parsed = JSON.parse(stored) as unknown;
+		return normalizeShortcutBindings(parsed);
+	} catch {
+		return DEFAULT_SHORTCUT_BINDINGS;
+	}
+}
+
+export function setShortcutBindings(bindings: ShortcutBindings): void {
+	localStorage.setItem(
+		SETTINGS_SHORTCUTS,
+		JSON.stringify(dedupeShortcutBindings(bindings)),
+	);
+	emitSettingsChange(SETTINGS_SHORTCUTS);
+}
+
+export function setShortcutBinding(
+	action: ShortcutAction,
+	hotkey: ShortcutBinding,
+): void {
+	setShortcutBindings({
+		...getShortcutBindings(),
+		[action]: hotkey,
+	});
+}
+
+export function resetShortcutBindings(): void {
+	setShortcutBindings(DEFAULT_SHORTCUT_BINDINGS);
+}
+
+// ---------------------------------------------------------------------------
 // useSettings hook — reactive access via useSyncExternalStore
 // ---------------------------------------------------------------------------
 
@@ -191,6 +240,7 @@ export interface Settings {
 	thinkingEnabled: boolean;
 	thinkingBudget: number;
 	thinkingLevel: ThinkingLevel;
+	shortcuts: ShortcutBindings;
 }
 
 function readSettings(): Settings {
@@ -203,6 +253,7 @@ function readSettings(): Settings {
 		thinkingEnabled: getThinkingEnabled(),
 		thinkingBudget: getThinkingBudget(),
 		thinkingLevel: getThinkingLevel(),
+		shortcuts: getShortcutBindings(),
 	};
 }
 
@@ -223,7 +274,8 @@ function subscribe(callback: () => void): () => void {
 			e.key === SETTINGS_GROUNDING ||
 			e.key === SETTINGS_THINKING_ENABLED ||
 			e.key === SETTINGS_THINKING_BUDGET ||
-			e.key === SETTINGS_THINKING_LEVEL
+			e.key === SETTINGS_THINKING_LEVEL ||
+			e.key === SETTINGS_SHORTCUTS
 		) {
 			cachedSettings = readSettings();
 			callback();
@@ -252,6 +304,7 @@ function getServerSnapshot(): Settings {
 		thinkingEnabled: false,
 		thinkingBudget: DEFAULT_THINKING_BUDGET,
 		thinkingLevel: DEFAULT_THINKING_LEVEL,
+		shortcuts: DEFAULT_SHORTCUT_BINDINGS,
 	};
 }
 
@@ -307,4 +360,25 @@ export function useThinkingLevel(): [
 ] {
 	const settings = useSettings();
 	return [settings.thinkingLevel, useCallback(setThinkingLevel, [])];
+}
+
+export function useShortcutBindings(): [
+	ShortcutBindings,
+	(bindings: ShortcutBindings) => void,
+] {
+	const settings = useSettings();
+	return [settings.shortcuts, useCallback(setShortcutBindings, [])];
+}
+
+export function useShortcutBinding(
+	action: ShortcutAction,
+): [ShortcutBinding, (hotkey: ShortcutBinding) => void] {
+	const settings = useSettings();
+	return [
+		settings.shortcuts[action],
+		useCallback(
+			(hotkey: ShortcutBinding) => setShortcutBinding(action, hotkey),
+			[action],
+		),
+	];
 }

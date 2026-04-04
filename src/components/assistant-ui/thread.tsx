@@ -22,7 +22,7 @@ import {
 	RefreshCwIcon,
 	SquareIcon,
 } from "lucide-react";
-import type { FC } from "react";
+import { type FC, useEffect, useRef } from "react";
 import {
 	ComposerAddAttachment,
 	ComposerAttachments,
@@ -43,6 +43,7 @@ import { ComposerModelSelector } from "#/components/composer-model-selector";
 import { ComposerThinkingSelector } from "#/components/composer-thinking-selector";
 import { openSettingsDialog } from "#/components/settings-dialog";
 import { Button } from "#/components/ui/button";
+import { FOCUS_CHAT_INPUT_EVENT } from "#/lib/keyboard-shortcuts";
 import { useSettings } from "#/lib/settings";
 import { cn } from "#/lib/utils";
 
@@ -166,6 +167,19 @@ const ThreadSuggestionItem: FC<{ prompt: string }> = ({ prompt }) => {
 };
 
 const Composer: FC = () => {
+	const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+	useEffect(() => {
+		const handleFocusChatInput = () => {
+			inputRef.current?.focus();
+		};
+
+		window.addEventListener(FOCUS_CHAT_INPUT_EVENT, handleFocusChatInput);
+		return () => {
+			window.removeEventListener(FOCUS_CHAT_INPUT_EVENT, handleFocusChatInput);
+		};
+	}, []);
+
 	return (
 		<ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
 			<ComposerPrimitive.AttachmentDropzone asChild>
@@ -176,6 +190,7 @@ const Composer: FC = () => {
 					<ComposerAttachments />
 					<ComposerQuotePreview />
 					<ComposerPrimitive.Input
+						ref={inputRef}
 						placeholder="Send a message..."
 						className="aui-composer-input max-h-32 min-h-10 w-full resize-none bg-transparent px-1.75 py-1 text-sm outline-none placeholder:text-muted-foreground/80"
 						rows={1}

@@ -15,6 +15,7 @@ import {
 	ResizablePanelGroup,
 } from "#/components/ui/resizable";
 import { TooltipProvider } from "#/components/ui/tooltip";
+import { useAppHotkeys } from "#/hooks/use-app-hotkeys";
 
 export const Route = createFileRoute("/")({ component: App });
 
@@ -24,6 +25,7 @@ function App() {
 	const panelGroupRef = useRef<GroupImperativeHandle | null>(null);
 	const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null);
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+	useAppHotkeys();
 
 	useEffect(() => {
 		const rawLayout = window.localStorage.getItem(RESIZABLE_LAYOUT_STORAGE_KEY);
