@@ -1,5 +1,6 @@
 import {
 	AssistantRuntimeProvider,
+	useAuiState,
 	useLocalRuntime,
 	useRemoteThreadListRuntime,
 } from "@assistant-ui/react";
@@ -8,6 +9,7 @@ import { type PropsWithChildren, useEffect, useState } from "react";
 import { compositeAttachmentAdapter } from "#/lib/attachment-adapter";
 import { geminiAdapter } from "#/lib/gemini-adapter";
 import { useSettings } from "#/lib/settings";
+import { useStreamingStore } from "#/lib/streaming-store";
 import { threadListAdapter } from "#/lib/thread-list-adapter";
 
 function MissingApiKeyNotice() {
@@ -25,6 +27,21 @@ function useGChatLocalRuntime() {
 			attachments: compositeAttachmentAdapter,
 		},
 	});
+}
+
+function StreamingStateSync() {
+	const mainThreadId = useAuiState((s) => s.threads.mainThreadId);
+	const isRunning = useAuiState((s) => s.thread.isRunning);
+
+	useEffect(() => {
+		if (!mainThreadId) {
+			return;
+		}
+
+		useStreamingStore.getState().setRunning(mainThreadId, isRunning);
+	}, [isRunning, mainThreadId]);
+
+	return null;
 }
 
 export function GChatRuntimeProvider({ children }: PropsWithChildren) {
@@ -45,6 +62,7 @@ export function GChatRuntimeProvider({ children }: PropsWithChildren) {
 
 	return (
 		<AssistantRuntimeProvider runtime={runtime}>
+			<StreamingStateSync />
 			{isInitializing ? (
 				<div className="flex h-full items-center justify-center text-muted-foreground text-sm">
 					<Loader2Icon className="mr-2 size-4 animate-spin" />

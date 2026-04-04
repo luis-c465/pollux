@@ -38,6 +38,7 @@ import {
 } from "#/components/ui/context-menu";
 import { Skeleton } from "#/components/ui/skeleton";
 import { getAllThreads } from "#/lib/db";
+import { useStreamingStore } from "#/lib/streaming-store";
 
 // ---------------------------------------------------------------------------
 // Time group helpers
@@ -342,6 +343,11 @@ const ThreadListSkeleton: FC = () => {
 function RegularThreadListItem() {
 	const threadItem = useThreadListItem();
 	const [infoOpen, setInfoOpen] = useState(false);
+	const isRunning = useStreamingStore((s) => {
+		// console.log(s.runningThreadIds);
+		return s.runningThreadIds.has(threadItem.id);
+	});
+	// console.log(isRunning)
 
 	return (
 		<>
@@ -352,6 +358,9 @@ function RegularThreadListItem() {
 							<span className="aui-thread-list-item-title block min-w-0 flex-1 truncate">
 								<ThreadListItemPrimitive.Title fallback="New Chat" />
 							</span>
+							{isRunning ? (
+								<span className="ml-2 size-2 shrink-0 animate-pulse rounded-full bg-green-500" />
+							) : null}
 						</ThreadListItemPrimitive.Trigger>
 					</ThreadListItemPrimitive.Root>
 				</ContextMenuTrigger>

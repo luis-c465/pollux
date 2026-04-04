@@ -6,7 +6,7 @@ import type {
 	ThreadMessage,
 } from "@assistant-ui/react";
 import { type LanguageModelUsage, type ModelMessage, streamText } from "ai";
-
+import { useStreamingStore } from "#/lib/streaming-store";
 import {
 	DEFAULT_MODEL,
 	getGeminiModel,
@@ -463,7 +463,7 @@ const toTokenUsageMetadata = (
 };
 
 export const geminiAdapter: ChatModelAdapter = {
-	run: async function* ({ abortSignal, context, messages }) {
+	run: async function* ({ abortSignal, context, messages, unstable_threadId }) {
 		const apiKey = getStorageItem(API_KEY_STORAGE_KEY);
 		if (!apiKey) {
 			yield {
@@ -551,6 +551,10 @@ export const geminiAdapter: ChatModelAdapter = {
 		};
 
 		try {
+			if (unstable_threadId) {
+				useStreamingStore.getState().setRunning(unstable_threadId, true);
+			}
+
 			const stream = streamText({
 				abortSignal,
 				model: google(selectedModel),
@@ -760,6 +764,10 @@ export const geminiAdapter: ChatModelAdapter = {
 					error: { message },
 				},
 			};
+		} finally {
+			if (unstable_threadId) {
+				useStreamingStore.getState().setRunning(unstable_threadId, false);
+			}
 		}
 	},
 };
