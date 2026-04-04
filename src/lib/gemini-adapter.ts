@@ -42,6 +42,14 @@ type AiSdkTextPart = {
 
 type AiSdkMessagePart = AiSdkFilePart | AiSdkTextPart;
 
+type QuoteMetadata = {
+	custom?: {
+		quote?: {
+			text?: string;
+		};
+	};
+};
+
 const TEXT_FILE_MIME_PREFIXES = ["text/"];
 const TEXT_FILE_MIME_TYPES = new Set([
 	"application/json",
@@ -163,6 +171,13 @@ const toAiSdkMessage = (message: ThreadMessage): ModelMessage | null => {
 		return null;
 	}
 
+	const quoteText =
+		message.role === "user"
+			? (
+					message.metadata as QuoteMetadata | undefined
+				)?.custom?.quote?.text?.trim()
+			: undefined;
+
 	const attachmentContentParts = (message.attachments ?? []).flatMap(
 		(attachment) =>
 			attachment.status.type === "complete" ? (attachment.content ?? []) : [],
@@ -171,6 +186,14 @@ const toAiSdkMessage = (message: ThreadMessage): ModelMessage | null => {
 	const parts = [...message.content, ...attachmentContentParts]
 		.map(toAiSdkPart)
 		.filter((part) => part !== null);
+
+	if (quoteText) {
+		parts.unshift({
+			type: "text",
+			text: `> ${quoteText}`,
+		});
+	}
+
 	if (parts.length === 0) {
 		return null;
 	}

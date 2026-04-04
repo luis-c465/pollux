@@ -29,6 +29,11 @@ import {
 	UserMessageAttachments,
 } from "#/components/assistant-ui/attachment";
 import { MarkdownText } from "#/components/assistant-ui/markdown-text";
+import {
+	ComposerQuotePreview,
+	QuoteBlock,
+	SelectionToolbar,
+} from "#/components/assistant-ui/quote";
 import { Reasoning } from "#/components/assistant-ui/reasoning";
 import { Sources } from "#/components/assistant-ui/sources";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
@@ -68,6 +73,7 @@ export const Thread: FC = () => {
 					<Composer />
 				</ThreadPrimitive.ViewportFooter>
 			</ThreadPrimitive.Viewport>
+			<SelectionToolbar />
 		</ThreadPrimitive.Root>
 	);
 };
@@ -168,6 +174,7 @@ const Composer: FC = () => {
 					className="flex w-full flex-col gap-2 rounded-(--composer-radius) border bg-background p-(--composer-padding) transition-shadow focus-within:border-ring/75 focus-within:ring-2 focus-within:ring-ring/20 data-[dragging=true]:border-ring data-[dragging=true]:border-dashed data-[dragging=true]:bg-accent/50"
 				>
 					<ComposerAttachments />
+					<ComposerQuotePreview />
 					<ComposerPrimitive.Input
 						placeholder="Send a message..."
 						className="aui-composer-input max-h-32 min-h-10 w-full resize-none bg-transparent px-1.75 py-1 text-sm outline-none placeholder:text-muted-foreground/80"
@@ -319,6 +326,9 @@ const UserMessage: FC = () => {
 
 			<div className="aui-user-message-content-wrapper relative col-start-2 min-w-0">
 				<div className="aui-user-message-content wrap-break-word peer rounded-2xl bg-muted px-4 py-2.5 text-foreground empty:hidden">
+					<MessagePrimitive.Quote>
+						{(quote) => <QuoteBlock {...quote} />}
+					</MessagePrimitive.Quote>
 					<MessagePrimitive.Parts />
 				</div>
 				<div className="aui-user-action-bar-wrapper absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 pr-2 peer-empty:hidden">
