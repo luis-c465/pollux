@@ -1,12 +1,28 @@
 import {
 	AuiIf,
-	ThreadListItemMorePrimitive,
 	ThreadListItemPrimitive,
 	ThreadListPrimitive,
 } from "@assistant-ui/react";
-import { ArchiveIcon, MoreHorizontalIcon, TrashIcon } from "lucide-react";
+import {
+	ArchiveIcon,
+	ChevronRightIcon,
+	TrashIcon,
+	Undo2Icon,
+} from "lucide-react";
 import type { FC } from "react";
 import { Button } from "#/components/ui/button";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "#/components/ui/collapsible";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "#/components/ui/context-menu";
 import { Skeleton } from "#/components/ui/skeleton";
 
 export const ThreadList: FC = () => {
@@ -19,6 +35,22 @@ export const ThreadList: FC = () => {
 				<ThreadListPrimitive.Items>
 					{() => <ThreadListItem />}
 				</ThreadListPrimitive.Items>
+				<Collapsible defaultOpen={false} className="mx-1 mt-1">
+					<CollapsibleTrigger asChild>
+						<Button
+							variant="ghost"
+							className="group h-8 w-full justify-start gap-1.5 px-2 text-muted-foreground text-xs hover:text-sidebar-foreground"
+						>
+							<ChevronRightIcon className="size-3.5 transition-transform group-data-[state=open]:rotate-90" />
+							Archived
+						</Button>
+					</CollapsibleTrigger>
+					<CollapsibleContent className="space-y-1">
+						<ThreadListPrimitive.Items archived>
+							{() => <ThreadListItem archived />}
+						</ThreadListPrimitive.Items>
+					</CollapsibleContent>
+				</Collapsible>
 			</AuiIf>
 		</ThreadListPrimitive.Root>
 	);
@@ -48,50 +80,42 @@ const ThreadListSkeleton: FC = () => {
 	);
 };
 
-const ThreadListItem: FC = () => {
+const ThreadListItem: FC<{ archived?: boolean }> = ({ archived = false }) => {
 	return (
-		<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 items-center gap-2 rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
-			<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-full min-w-0 flex-1 items-center px-3 text-sidebar-foreground text-start text-sm">
-				<span className="aui-thread-list-item-title min-w-0 flex-1 truncate">
-					<ThreadListItemPrimitive.Title fallback="New Chat" />
-				</span>
-			</ThreadListItemPrimitive.Trigger>
-			<ThreadListItemMore />
-		</ThreadListItemPrimitive.Root>
-	);
-};
-
-const ThreadListItemMore: FC = () => {
-	return (
-		<ThreadListItemMorePrimitive.Root>
-			<ThreadListItemMorePrimitive.Trigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="aui-thread-list-item-more mr-2 size-7 p-0 opacity-0 transition-opacity group-hover:opacity-100 data-[state=open]:bg-accent data-[state=open]:opacity-100 group-data-active:opacity-100"
-				>
-					<MoreHorizontalIcon className="size-4" />
-					<span className="sr-only">More options</span>
-				</Button>
-			</ThreadListItemMorePrimitive.Trigger>
-			<ThreadListItemMorePrimitive.Content
-				side="bottom"
-				align="start"
-				className="aui-thread-list-item-more-content z-50 min-w-32 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md"
-			>
-				<ThreadListItemPrimitive.Archive asChild>
-					<ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-						<ArchiveIcon className="size-4" />
-						Archive
-					</ThreadListItemMorePrimitive.Item>
-				</ThreadListItemPrimitive.Archive>
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 w-full min-w-0 items-center rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
+					<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-8 min-w-0 flex-1 items-center overflow-hidden px-3 text-sidebar-foreground text-start text-sm">
+						<span className="aui-thread-list-item-title block min-w-0 flex-1 truncate">
+							<ThreadListItemPrimitive.Title fallback="New Chat" />
+						</span>
+					</ThreadListItemPrimitive.Trigger>
+				</ThreadListItemPrimitive.Root>
+			</ContextMenuTrigger>
+			<ContextMenuContent className="min-w-40">
+				{archived ? (
+					<ThreadListItemPrimitive.Unarchive asChild>
+						<ContextMenuItem>
+							<Undo2Icon className="size-4" />
+							Unarchive
+						</ContextMenuItem>
+					</ThreadListItemPrimitive.Unarchive>
+				) : (
+					<ThreadListItemPrimitive.Archive asChild>
+						<ContextMenuItem>
+							<ArchiveIcon className="size-4" />
+							Archive
+						</ContextMenuItem>
+					</ThreadListItemPrimitive.Archive>
+				)}
+				<ContextMenuSeparator />
 				<ThreadListItemPrimitive.Delete asChild>
-					<ThreadListItemMorePrimitive.Item className="aui-thread-list-item-more-item flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-destructive text-sm outline-none hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive">
+					<ContextMenuItem variant="destructive">
 						<TrashIcon className="size-4" />
 						Delete
-					</ThreadListItemMorePrimitive.Item>
+					</ContextMenuItem>
 				</ThreadListItemPrimitive.Delete>
-			</ThreadListItemMorePrimitive.Content>
-		</ThreadListItemMorePrimitive.Root>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 };

@@ -5,7 +5,6 @@ import { ThreadList } from "#/components/assistant-ui/thread-list";
 import { SettingsDialog } from "#/components/settings-dialog";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
-import { ScrollArea } from "#/components/ui/scroll-area";
 import {
 	Sidebar,
 	SidebarContent,
@@ -57,15 +56,15 @@ export function ChatSidebar() {
 						</span>
 					</Button>
 				</ThreadListPrimitive.New>
-				<p className="px-1 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+				<p className="truncate px-1 text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
 					No chats yet? Start a new conversation.
 				</p>
 			</SidebarHeader>
 
-			<SidebarContent>
-				<ScrollArea className="h-full px-2 pb-2">
+			<SidebarContent className="max-w-full">
+
 					<ThreadList />
-				</ScrollArea>
+
 			</SidebarContent>
 
 			<SidebarFooter className="border-t">
