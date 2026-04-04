@@ -3,11 +3,13 @@ import {
 	ThreadListItemPrimitive,
 	ThreadListPrimitive,
 	useAuiState,
+	useThreadListItem,
 } from "@assistant-ui/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
 	ArchiveIcon,
 	ChevronRightIcon,
+	InfoIcon,
 	TrashIcon,
 	Undo2Icon,
 } from "lucide-react";
@@ -20,6 +22,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { ThreadInfoDialog } from "#/components/assistant-ui/thread-info-dialog";
 import { Button } from "#/components/ui/button";
 import {
 	Collapsible,
@@ -337,63 +340,93 @@ const ThreadListSkeleton: FC = () => {
 // ---------------------------------------------------------------------------
 
 function RegularThreadListItem() {
+	const threadItem = useThreadListItem();
+	const [infoOpen, setInfoOpen] = useState(false);
+
 	return (
-		<ContextMenu>
-			<ContextMenuTrigger asChild>
-				<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 w-full min-w-0 items-center rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
-					<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-8 min-w-0 flex-1 items-center overflow-hidden px-3 text-sidebar-foreground text-start text-sm">
-						<span className="aui-thread-list-item-title block min-w-0 flex-1 truncate">
-							<ThreadListItemPrimitive.Title fallback="New Chat" />
-						</span>
-					</ThreadListItemPrimitive.Trigger>
-				</ThreadListItemPrimitive.Root>
-			</ContextMenuTrigger>
-			<ContextMenuContent className="min-w-40">
-				<ThreadListItemPrimitive.Archive asChild>
-					<ContextMenuItem>
-						<ArchiveIcon className="size-4" />
-						Archive
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
+					<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 w-full min-w-0 items-center rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
+						<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-8 min-w-0 flex-1 items-center overflow-hidden px-3 text-sidebar-foreground text-start text-sm">
+							<span className="aui-thread-list-item-title block min-w-0 flex-1 truncate">
+								<ThreadListItemPrimitive.Title fallback="New Chat" />
+							</span>
+						</ThreadListItemPrimitive.Trigger>
+					</ThreadListItemPrimitive.Root>
+				</ContextMenuTrigger>
+				<ContextMenuContent className="min-w-40">
+					<ContextMenuItem onSelect={() => setInfoOpen(true)}>
+						<InfoIcon className="size-4" />
+						Info
 					</ContextMenuItem>
-				</ThreadListItemPrimitive.Archive>
-				<ContextMenuSeparator />
-				<ThreadListItemPrimitive.Delete asChild>
-					<ContextMenuItem variant="destructive">
-						<TrashIcon className="size-4" />
-						Delete
-					</ContextMenuItem>
-				</ThreadListItemPrimitive.Delete>
-			</ContextMenuContent>
-		</ContextMenu>
+					<ContextMenuSeparator />
+					<ThreadListItemPrimitive.Archive asChild>
+						<ContextMenuItem>
+							<ArchiveIcon className="size-4" />
+							Archive
+						</ContextMenuItem>
+					</ThreadListItemPrimitive.Archive>
+					<ContextMenuSeparator />
+					<ThreadListItemPrimitive.Delete asChild>
+						<ContextMenuItem variant="destructive">
+							<TrashIcon className="size-4" />
+							Delete
+						</ContextMenuItem>
+					</ThreadListItemPrimitive.Delete>
+				</ContextMenuContent>
+			</ContextMenu>
+			<ThreadInfoDialog
+				threadId={threadItem.id}
+				open={infoOpen}
+				onOpenChange={setInfoOpen}
+			/>
+		</>
 	);
 }
 
 function ArchivedThreadListItem() {
+	const threadItem = useThreadListItem();
+	const [infoOpen, setInfoOpen] = useState(false);
+
 	return (
-		<ContextMenu>
-			<ContextMenuTrigger asChild>
-				<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 w-full min-w-0 items-center rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
-					<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-8 min-w-0 flex-1 items-center overflow-hidden px-3 text-sidebar-foreground text-start text-sm">
-						<span className="aui-thread-list-item-title block min-w-0 flex-1 truncate">
-							<ThreadListItemPrimitive.Title fallback="New Chat" />
-						</span>
-					</ThreadListItemPrimitive.Trigger>
-				</ThreadListItemPrimitive.Root>
-			</ContextMenuTrigger>
-			<ContextMenuContent className="min-w-40">
-				<ThreadListItemPrimitive.Unarchive asChild>
-					<ContextMenuItem>
-						<Undo2Icon className="size-4" />
-						Unarchive
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
+					<ThreadListItemPrimitive.Root className="aui-thread-list-item group mx-1 flex h-9 w-full min-w-0 items-center rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-none data-active:bg-sidebar-accent">
+						<ThreadListItemPrimitive.Trigger className="aui-thread-list-item-trigger flex h-8 min-w-0 flex-1 items-center overflow-hidden px-3 text-sidebar-foreground text-start text-sm">
+							<span className="aui-thread-list-item-title block min-w-0 flex-1 truncate">
+								<ThreadListItemPrimitive.Title fallback="New Chat" />
+							</span>
+						</ThreadListItemPrimitive.Trigger>
+					</ThreadListItemPrimitive.Root>
+				</ContextMenuTrigger>
+				<ContextMenuContent className="min-w-40">
+					<ContextMenuItem onSelect={() => setInfoOpen(true)}>
+						<InfoIcon className="size-4" />
+						Info
 					</ContextMenuItem>
-				</ThreadListItemPrimitive.Unarchive>
-				<ContextMenuSeparator />
-				<ThreadListItemPrimitive.Delete asChild>
-					<ContextMenuItem variant="destructive">
-						<TrashIcon className="size-4" />
-						Delete
-					</ContextMenuItem>
-				</ThreadListItemPrimitive.Delete>
-			</ContextMenuContent>
-		</ContextMenu>
+					<ContextMenuSeparator />
+					<ThreadListItemPrimitive.Unarchive asChild>
+						<ContextMenuItem>
+							<Undo2Icon className="size-4" />
+							Unarchive
+						</ContextMenuItem>
+					</ThreadListItemPrimitive.Unarchive>
+					<ContextMenuSeparator />
+					<ThreadListItemPrimitive.Delete asChild>
+						<ContextMenuItem variant="destructive">
+							<TrashIcon className="size-4" />
+							Delete
+						</ContextMenuItem>
+					</ThreadListItemPrimitive.Delete>
+				</ContextMenuContent>
+			</ContextMenu>
+			<ThreadInfoDialog
+				threadId={threadItem.id}
+				open={infoOpen}
+				onOpenChange={setInfoOpen}
+			/>
+		</>
 	);
 }

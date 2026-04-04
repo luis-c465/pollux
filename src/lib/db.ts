@@ -46,6 +46,16 @@ export type AttachmentRef = {
 	size: number;
 };
 
+export type ThreadStats = {
+	thread: StoredThread | undefined;
+	messageCount: number;
+	userMessageCount: number;
+	assistantMessageCount: number;
+	attachmentCount: number;
+	totalAttachmentSize: number;
+	attachments: AttachmentRef[];
+};
+
 type GChatDBSchema = DBSchema & {
 	threads: {
 		key: string;
@@ -362,6 +372,42 @@ export const getMessagesByThreadId = async (
 
 	await tx.done;
 	return entries;
+};
+
+export const getThreadStats = async (
+	threadId: string,
+): Promise<ThreadStats> => {
+	const [thread, messages] = await Promise.all([
+		getThread(threadId),
+		getMessagesByThreadId(threadId),
+	]);
+
+	let userMessageCount = 0;
+	let assistantMessageCount = 0;
+	const attachments: AttachmentRef[] = [];
+
+	for (const message of messages) {
+		if (message.role === "user") userMessageCount += 1;
+		if (message.role === "assistant") assistantMessageCount += 1;
+
+		const refs = jsonParse<AttachmentRef[]>(message.attachments, []);
+		attachments.push(...refs);
+	}
+
+	const totalAttachmentSize = attachments.reduce(
+		(total, attachment) => total + attachment.size,
+		0,
+	);
+
+	return {
+		thread,
+		messageCount: messages.length,
+		userMessageCount,
+		assistantMessageCount,
+		attachmentCount: attachments.length,
+		totalAttachmentSize,
+		attachments,
+	};
 };
 
 export const addMessage = async (
