@@ -163,7 +163,12 @@ const toAiSdkMessage = (message: ThreadMessage): ModelMessage | null => {
 		return null;
 	}
 
-	const parts = message.content
+	const attachmentContentParts = (message.attachments ?? []).flatMap(
+		(attachment) =>
+			attachment.status.type === "complete" ? (attachment.content ?? []) : [],
+	);
+
+	const parts = [...message.content, ...attachmentContentParts]
 		.map(toAiSdkPart)
 		.filter((part) => part !== null);
 	if (parts.length === 0) {
