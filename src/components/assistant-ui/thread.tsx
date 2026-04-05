@@ -40,6 +40,7 @@ import { Sources } from "#/components/assistant-ui/sources";
 import { ToolFallback } from "#/components/assistant-ui/tool-fallback";
 import { TooltipIconButton } from "#/components/assistant-ui/tooltip-icon-button";
 import { ComposerGroundingToggle } from "#/components/composer-grounding-toggle";
+import { ComposerModelConfigSheet } from "#/components/composer-model-config-sheet";
 import { ComposerModelSelector } from "#/components/composer-model-selector";
 import { ComposerThinkingSelector } from "#/components/composer-thinking-selector";
 import { openSettingsDialog } from "#/components/settings-dialog";
@@ -258,8 +259,13 @@ const ComposerAction: FC = () => {
 			<div className="flex items-center gap-2">
 				<ComposerAddAttachment />
 				<ComposerModelSelector />
-				<ComposerThinkingSelector />
-				<ComposerGroundingToggle />
+				<div className="hidden items-center gap-2 sm:flex">
+					<ComposerThinkingSelector />
+					<ComposerGroundingToggle />
+				</div>
+				<div className="sm:hidden">
+					<ComposerModelConfigSheet />
+				</div>
 			</div>
 			<AuiIf condition={(s) => !s.thread.isRunning}>
 				<ComposerPrimitive.Send asChild>
