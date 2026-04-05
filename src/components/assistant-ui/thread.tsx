@@ -165,7 +165,7 @@ const ThreadWelcome: FC = () => {
 						<span>v{__APP_VERSION__}</span>
 						<span className="select-none">·</span>
 						<a
-							href="https://github.com"
+							href="https://github.com/luis-c465/pollux"
 							target="_blank"
 							rel="noopener noreferrer"
 							className="underline underline-offset-2 hover:text-foreground transition-colors"
