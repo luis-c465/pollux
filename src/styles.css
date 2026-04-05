@@ -121,6 +121,21 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@keyframes pollux-gradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.pollux-text {
+  background: linear-gradient(135deg, #ffff00, #ff9900, #ff3300, #990000, #ff6600, #ffcc00, #ffff00);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: pollux-gradient 12s ease-in-out infinite;
+}
+
 html,
 body,
 #app {

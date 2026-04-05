@@ -110,17 +110,10 @@ const ThreadWelcome: FC = () => {
 			<div className="aui-thread-welcome-center flex w-full grow flex-col items-center justify-center">
 				<div className="aui-thread-welcome-message flex size-full flex-col justify-center px-4">
 					<h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-2xl duration-200">
-						Welcome to{" "}
-						<span
-							style={{
-								background:
-									"linear-gradient(135deg, #ff3300 0%, #ff9900 50%, #ffff00 100%)",
-								WebkitBackgroundClip: "text",
-								WebkitTextFillColor: "transparent",
-								backgroundClip: "text",
-							}}
-						>
+						<span>Welcome to </span>
+						<span className="pollux-text inline-flex">
 							Pollux
+							<img src="/star.svg" alt="Pollux" className="size-8" />
 						</span>
 					</h1>
 					<p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-xl delay-75 duration-200">
