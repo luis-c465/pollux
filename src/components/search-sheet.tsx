@@ -1,5 +1,5 @@
 import { useAui } from "@assistant-ui/react";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, XIcon } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Input } from "#/components/ui/input";
 import {
@@ -220,8 +220,16 @@ export function SearchSheet() {
 								setActiveIndex(0);
 							}}
 							onKeyDown={handleKeyDown}
-							className="pl-9 border-0 bg-transparent shadow-none focus-visible:ring-0 text-sm"
+							className="pl-9 pr-9 border-0 bg-transparent shadow-none focus-visible:ring-0 text-sm sm:pr-3"
 						/>
+						<button
+							type="button"
+							onClick={() => setOpen(false)}
+							aria-label="Close search"
+							className="absolute right-1 flex size-7 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground sm:hidden"
+						>
+							<XIcon className="size-4" />
+						</button>
 					</div>
 				</SheetHeader>
 
