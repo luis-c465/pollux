@@ -4,9 +4,10 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import tsconfigPaths from "vite-tsconfig-paths";
-import pkg from './package.json'
+import pkg from "./package.json";
 
 const config = defineConfig({
+	base: "/pollux/",
 	plugins: [
 		tsconfigPaths({ projects: ["./tsconfig.json"] }),
 		tailwindcss(),
@@ -28,7 +29,7 @@ const config = defineConfig({
 			workbox: {
 				globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
 				maximumFileSizeToCacheInBytes: 5_000_000,
-				navigateFallback: "/_shell.html",
+				navigateFallback: "/pollux/_shell.html",
 				navigateFallbackDenylist: [/^\/api\//],
 			},
 			devOptions: {
@@ -36,9 +37,9 @@ const config = defineConfig({
 			},
 		}),
 	],
-	  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
-  },
+	define: {
+		__APP_VERSION__: JSON.stringify(pkg.version),
+	},
 });
 
 export default config;
