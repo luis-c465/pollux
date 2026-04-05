@@ -5,6 +5,7 @@ export const NEW_CHAT_EVENT = "pollux-new-chat";
 export const OPEN_MODEL_PICKER_EVENT = "pollux-open-model-picker";
 export const OPEN_THINKING_SELECTOR_EVENT = "pollux-open-thinking-selector";
 export const TOGGLE_GROUNDING_EVENT = "pollux-toggle-grounding";
+export const OPEN_SEARCH_EVENT = "pollux-open-search";
 
 export type ShortcutBinding = Hotkey | "";
 
@@ -14,6 +15,7 @@ export interface ShortcutBindings {
 	openModelPicker: ShortcutBinding;
 	openThinking: ShortcutBinding;
 	toggleGrounding: ShortcutBinding;
+	openSearch: ShortcutBinding;
 }
 
 export type ShortcutAction = keyof ShortcutBindings;
@@ -64,6 +66,14 @@ export const SHORTCUT_DEFINITIONS: readonly ShortcutDefinition[] = [
 		eventName: FOCUS_CHAT_INPUT_EVENT,
 		defaultHotkey: "Alt+L",
 	},
+	{
+		action: "openSearch",
+		label: "Open search",
+		description:
+			"Open the full-text fuzzy search panel to search across all chats.",
+		eventName: OPEN_SEARCH_EVENT,
+		defaultHotkey: "Alt+F",
+	},
 ];
 
 export const DEFAULT_SHORTCUT_BINDINGS: ShortcutBindings =
@@ -78,6 +88,7 @@ export const DEFAULT_SHORTCUT_BINDINGS: ShortcutBindings =
 			openModelPicker: "",
 			openThinking: "",
 			toggleGrounding: "",
+			openSearch: "",
 		},
 	);
 
@@ -113,6 +124,10 @@ export function normalizeShortcutBindings(value: unknown): ShortcutBindings {
 		toggleGrounding: normalizeShortcutBinding(
 			rawBindings.toggleGrounding,
 			DEFAULT_SHORTCUT_BINDINGS.toggleGrounding,
+		),
+		openSearch: normalizeShortcutBinding(
+			rawBindings.openSearch,
+			DEFAULT_SHORTCUT_BINDINGS.openSearch,
 		),
 	});
 }

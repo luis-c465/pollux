@@ -519,3 +519,61 @@ export const deleteAttachmentsByThreadId = async (
 	await Promise.all(keys.map((key) => tx.store.delete(key)));
 	await tx.done;
 };
+
+// ---------------------------------------------------------------------------
+// Full-text search helpers
+// ---------------------------------------------------------------------------
+
+export type SearchableThread = {
+	threadId: string;
+	title: string;
+	/** All user + assistant text content joined with spaces. */
+	textContent: string;
+	updatedAt: number;
+};
+
+type ContentPart = { type: string; text?: string };
+
+/** Extracts plain text from a JSON-stringified content array. */
+const extractTextFromContent = (content: string): string => {
+	const parts = jsonParse<ContentPart[]>(content, []);
+	return parts
+		.filter((part) => part.type === "text" && typeof part.text === "string")
+		.map((part) => part.text as string)
+		.join(" ");
+};
+
+/**
+ * Loads all threads and their messages from IndexedDB, returning a flat array
+ * of SearchableThread objects suitable for fuzzy search indexing.
+ * Only extracts text-type content parts from user and assistant messages.
+ */
+export const loadSearchableThreads = async (): Promise<SearchableThread[]> => {
+	const db = await getDB();
+
+	const [threads, allMessages] = await Promise.all([
+		getAllThreads(),
+		db.getAll("messages"),
+	]);
+
+	// Group message text by threadId
+	const textByThread = new Map<string, string[]>();
+	for (const message of allMessages) {
+		if (message.role !== "user" && message.role !== "assistant") continue;
+		const text = extractTextFromContent(message.content);
+		if (!text.trim()) continue;
+		const existing = textByThread.get(message.threadId);
+		if (existing) {
+			existing.push(text);
+		} else {
+			textByThread.set(message.threadId, [text]);
+		}
+	}
+
+	return threads.map((thread) => ({
+		threadId: thread.id,
+		title: thread.title,
+		textContent: textByThread.get(thread.id)?.join(" ") ?? "",
+		updatedAt: thread.updatedAt,
+	}));
+};

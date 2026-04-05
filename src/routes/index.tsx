@@ -9,6 +9,7 @@ import { Thread } from "#/components/assistant-ui/thread";
 import { ChatHeader } from "#/components/chat-header";
 import { ChatSidebar } from "#/components/chat-sidebar";
 import { PolluxRuntimeProvider } from "#/components/runtime-provider";
+import { SearchSheet } from "#/components/search-sheet";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -75,6 +76,7 @@ function AppContent() {
 	if (isMobile) {
 		return (
 			<div className="flex h-full min-h-0 flex-col w-full">
+				<SearchSheet />
 				<Sidebar collapsible="offcanvas">
 					<ChatSidebar />
 				</Sidebar>
@@ -97,6 +99,7 @@ function AppContent() {
 			orientation="horizontal"
 			className="h-full min-h-0"
 		>
+			<SearchSheet />
 			<ResizablePanel
 				id="sidebar"
 				panelRef={sidebarPanelRef}
