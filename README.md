@@ -2,7 +2,7 @@
 
 A frontend-only chat application for Google Gemini. All conversations and settings are stored locally in your browser — no backend, no account required.
 
-**[Live Demo](https://example.com)**
+**[Live Demo](https://luis-c465.github.io/pollux/)**
 
 <!-- screenshot -->
 
