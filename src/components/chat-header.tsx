@@ -1,19 +1,16 @@
 import { useAuiState } from "@assistant-ui/react";
 import { PanelLeftIcon } from "lucide-react";
-import { ContextDisplay } from "#/components/assistant-ui/context-display";
 import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
 
 type ChatHeaderProps = {
 	onToggleSidebar: () => void;
 	sidebarCollapsed: boolean;
-	modelContextWindow: number;
 };
 
 export function ChatHeader({
 	onToggleSidebar,
 	sidebarCollapsed,
-	modelContextWindow,
 }: ChatHeaderProps) {
 	const activeThreadTitle = useAuiState((s) => {
 		const activeThread = s.threads.threadItems.find(
@@ -41,9 +38,6 @@ export function ChatHeader({
 				<p className="max-w-full truncate font-medium text-foreground text-sm">
 					{activeThreadTitle}
 				</p>
-			</div>
-			<div className="z-10 ml-auto">
-				<ContextDisplay.Bar modelContextWindow={modelContextWindow} />
 			</div>
 		</header>
 	);

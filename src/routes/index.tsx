@@ -17,8 +17,6 @@ import {
 import { Sidebar, SidebarProvider, useSidebar } from "#/components/ui/sidebar";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { useAppHotkeys } from "#/hooks/use-app-hotkeys";
-import { DEFAULT_MODEL, getGeminiModel } from "#/lib/gemini-models";
-import { useSelectedModel } from "#/lib/settings";
 
 export const Route = createFileRoute("/")({ component: App });
 
@@ -28,11 +26,6 @@ function AppContent() {
 	const panelGroupRef = useRef<GroupImperativeHandle | null>(null);
 	const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null);
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-	const [selectedModel] = useSelectedModel();
-	const modelContextWindow =
-		getGeminiModel(selectedModel)?.contextWindow ??
-		getGeminiModel(DEFAULT_MODEL)?.contextWindow ??
-		1_048_576;
 	useAppHotkeys();
 
 	const { isMobile, toggleSidebar: toggleMobileSidebar } = useSidebar();
@@ -72,7 +65,6 @@ function AppContent() {
 			<ChatHeader
 				onToggleSidebar={handleToggleSidebar}
 				sidebarCollapsed={isMobile ? false : isSidebarCollapsed}
-				modelContextWindow={modelContextWindow}
 			/>
 			<div className="min-h-0 flex-1">
 				<Thread />
