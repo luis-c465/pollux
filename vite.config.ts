@@ -4,6 +4,7 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import tsconfigPaths from "vite-tsconfig-paths";
+import pkg from './package.json'
 
 const config = defineConfig({
 	plugins: [
@@ -35,6 +36,9 @@ const config = defineConfig({
 			},
 		}),
 	],
+	  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
 });
 
 export default config;

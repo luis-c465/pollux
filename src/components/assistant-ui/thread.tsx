@@ -141,6 +141,41 @@ const ThreadWelcome: FC = () => {
 							</Button>
 						</div>
 					) : null}
+					<p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground/60 text-xs delay-150 duration-200 mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+						<span>Made with ❤️ by Luis Canada</span>
+						<span className="select-none">·</span>
+						<span>
+							Using{" "}
+							<a
+								href="https://ui.shadcn.com"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline underline-offset-2 hover:text-foreground transition-colors"
+							>
+								Shadcn
+							</a>{" "}
+							and{" "}
+							<a
+								href="https://www.assistant-ui.com/"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="underline underline-offset-2 hover:text-foreground transition-colors"
+							>
+								Assistant UI
+							</a>
+						</span>
+						<span className="select-none">·</span>
+						<span>v{__APP_VERSION__}</span>
+						<span className="select-none">·</span>
+						<a
+							href="https://github.com"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="underline underline-offset-2 hover:text-foreground transition-colors"
+						>
+							GitHub
+						</a>
+					</p>
 				</div>
 			</div>
 			<ThreadSuggestions />
