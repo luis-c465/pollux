@@ -47,7 +47,7 @@ export const Route = createRootRoute({
 			},
 			{
 				property: "og:image",
-				content: "/logo512.png",
+				content: `${import.meta.env.BASE_URL}logo512.png`,
 			},
 		],
 		links: [
@@ -57,21 +57,21 @@ export const Route = createRootRoute({
 			},
 			{
 				rel: "manifest",
-				href: "/manifest.json",
+				href: `${import.meta.env.BASE_URL}manifest.json`,
 			},
 			{
 				rel: "icon",
 				type: "image/svg+xml",
-				href: "/favicon.svg",
+				href: `${import.meta.env.BASE_URL}favicon.svg`,
 			},
 			{
 				rel: "icon",
-				href: "/favicon.ico",
+				href: `${import.meta.env.BASE_URL}favicon.ico`,
 				sizes: "64x64 32x32 24x24 16x16",
 			},
 			{
 				rel: "apple-touch-icon",
-				href: "/logo192.png",
+				href: `${import.meta.env.BASE_URL}logo192.png`,
 			},
 		],
 	}),

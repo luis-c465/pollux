@@ -1,5 +1,5 @@
 {
-  "id": "/",
+  "id": "/pollux/",
   "short_name": "Pollux",
   "name": "Pollux — Gemini Chat",
   "description": "Pollux — Chat with Google Gemini models. Privacy-first — all conversations stored locally.",
@@ -53,7 +53,7 @@
       "label": "Pollux mobile chat view"
     }
   ],
-  "start_url": "/",
+  "start_url": "/pollux/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#111827",
