@@ -44,9 +44,19 @@ export function ChatSidebar() {
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground">
 			<div className="flex flex-col gap-3 border-b p-2">
-				<div className="flex items-center px-2 py-1">
-					<span className="font-semibold text-sidebar-foreground text-sm">
-						GChat
+				<div className="flex items-center gap-2 px-2 py-1">
+					<img src="/favicon.svg" alt="Pollux" className="size-5 shrink-0" />
+					<span
+						className="font-semibold text-sm"
+						style={{
+							background:
+								"linear-gradient(135deg, #ff3300 0%, #ff9900 50%, #ffff00 100%)",
+							WebkitBackgroundClip: "text",
+							WebkitTextFillColor: "transparent",
+							backgroundClip: "text",
+						}}
+					>
+						Pollux
 					</span>
 				</div>
 				<ThreadListPrimitive.New asChild>

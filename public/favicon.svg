@@ -1,0 +1,28 @@
+<svg viewBox="0 0 512 512" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#111827" />
+
+  <defs>
+    <path id="sparkle"
+          d="M 0 -100
+             C 0 -25, 25 0, 100 0
+             C 25 0, 0 25, 0 100
+             C 0 25, -25 0, -100 0
+             C -25 0, 0 -25, 0 -100 Z" />
+
+    <linearGradient id="gradLarge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color: #ff3300; stop-opacity: 1" /> <stop offset="50%" style="stop-color: #ff9900; stop-opacity: 1" /> <stop offset="100%" style="stop-color: #ffff00; stop-opacity: 1" /> </linearGradient>
+
+    <linearGradient id="gradMedium" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color: #ff6600; stop-opacity: 1" /> <stop offset="100%" style="stop-color: #ffcc00; stop-opacity: 1" /> </linearGradient>
+
+    <linearGradient id="gradSmall" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color: #ffff66; stop-opacity: 1" /> <stop offset="100%" style="stop-color: #ff9933; stop-opacity: 1" /> </linearGradient>
+  </defs>
+
+  <use href="#sparkle" transform="translate(196, 256) scale(1.4)" fill="url(#gradLarge)" />
+
+  <use href="#sparkle" transform="translate(360, 360) scale(0.84)" fill="url(#gradMedium)" />
+
+  <use href="#sparkle" transform="translate(330, 130) scale(0.56)" fill="url(#gradSmall)" opacity="0.75" />
+
+</svg>

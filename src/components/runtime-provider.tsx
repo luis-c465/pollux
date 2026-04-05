@@ -21,7 +21,7 @@ function MissingApiKeyNotice() {
 	);
 }
 
-function useGChatLocalRuntime() {
+function usePolluxLocalRuntime() {
 	return useLocalRuntime(geminiAdapter, {
 		adapters: {
 			attachments: compositeAttachmentAdapter,
@@ -44,9 +44,9 @@ function StreamingStateSync() {
 	return null;
 }
 
-export function GChatRuntimeProvider({ children }: PropsWithChildren) {
+export function PolluxRuntimeProvider({ children }: PropsWithChildren) {
 	const runtime = useRemoteThreadListRuntime({
-		runtimeHook: useGChatLocalRuntime,
+		runtimeHook: usePolluxLocalRuntime,
 		adapter: threadListAdapter,
 	});
 	const settings = useSettings();

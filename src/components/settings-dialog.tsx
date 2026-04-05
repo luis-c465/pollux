@@ -44,7 +44,7 @@ import {
 } from "#/lib/settings";
 import { cn } from "#/lib/utils";
 
-const SETTINGS_OPEN_EVENT = "gchat-open-settings-dialog";
+const SETTINGS_OPEN_EVENT = "pollux-open-settings-dialog";
 
 export function openSettingsDialog() {
 	if (typeof window === "undefined") return;

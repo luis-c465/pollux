@@ -21,12 +21,12 @@ export const Route = createRootRoute({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "GChat",
+				title: "Pollux",
 			},
 			{
 				name: "description",
 				content:
-					"Chat with Google Gemini models. Privacy-first — all conversations stored locally.",
+					"Pollux — Chat with Google Gemini models. Privacy-first — all conversations stored locally.",
 			},
 			{
 				name: "theme-color",
@@ -34,12 +34,12 @@ export const Route = createRootRoute({
 			},
 			{
 				property: "og:title",
-				content: "GChat",
+				content: "Pollux",
 			},
 			{
 				property: "og:description",
 				content:
-					"Chat with Google Gemini models. Privacy-first — all conversations stored locally.",
+					"Pollux — Chat with Google Gemini models. Privacy-first — all conversations stored locally.",
 			},
 			{
 				property: "og:type",
@@ -61,7 +61,17 @@ export const Route = createRootRoute({
 			},
 			{
 				rel: "icon",
+				type: "image/svg+xml",
+				href: "/favicon.svg",
+			},
+			{
+				rel: "icon",
 				href: "/favicon.ico",
+				sizes: "64x64 32x32 24x24 16x16",
+			},
+			{
+				rel: "apple-touch-icon",
+				href: "/logo192.png",
 			},
 		],
 	}),

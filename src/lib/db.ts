@@ -56,7 +56,7 @@ export type ThreadStats = {
 	attachments: AttachmentRef[];
 };
 
-type GChatDBSchema = DBSchema & {
+type PolluxDBSchema = DBSchema & {
 	threads: {
 		key: string;
 		value: StoredThread;
@@ -83,10 +83,10 @@ type GChatDBSchema = DBSchema & {
 	};
 };
 
-const DB_NAME = "gchat-db";
+const DB_NAME = "pollux-db";
 const DB_VERSION = 2;
 
-let dbPromise: Promise<IDBPDatabase<GChatDBSchema>> | undefined;
+let dbPromise: Promise<IDBPDatabase<PolluxDBSchema>> | undefined;
 
 const jsonParse = <T>(value: string | undefined, fallback: T): T => {
 	if (!value) return fallback;
@@ -150,9 +150,9 @@ export const deserializeMessage = (
 // Database initialization with versioned migration
 // ---------------------------------------------------------------------------
 
-export const getDB = async (): Promise<IDBPDatabase<GChatDBSchema>> => {
+export const getDB = async (): Promise<IDBPDatabase<PolluxDBSchema>> => {
 	if (!dbPromise) {
-		dbPromise = openDB<GChatDBSchema>(DB_NAME, DB_VERSION, {
+		dbPromise = openDB<PolluxDBSchema>(DB_NAME, DB_VERSION, {
 			upgrade(db, oldVersion) {
 				// v1: threads + messages stores
 				if (oldVersion < 1) {
@@ -310,7 +310,7 @@ export const updateThread = async (
 // ---------------------------------------------------------------------------
 
 const deleteMessagesByThreadIdInTransaction = async (
-	db: IDBPDatabase<GChatDBSchema>,
+	db: IDBPDatabase<PolluxDBSchema>,
 	threadId: string,
 ): Promise<void> => {
 	const tx = db.transaction("messages", "readwrite");

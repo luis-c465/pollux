@@ -18,9 +18,9 @@ import {
 	detectRefreshRate,
 } from "@/lib/typewriter";
 
-const API_KEY_STORAGE_KEY = "gchat-api-key";
-const MODEL_STORAGE_KEY = "gchat-model";
-const SYSTEM_PROMPT_STORAGE_KEY = "gchat-system-prompt";
+const API_KEY_STORAGE_KEY = "pollux-api-key";
+const MODEL_STORAGE_KEY = "pollux-model";
+const SYSTEM_PROMPT_STORAGE_KEY = "pollux-system-prompt";
 const TYPEWRITER_BACKLOG_THRESHOLD = 100;
 const REASONING_TYPEWRITER_BACKLOG_THRESHOLD = 120;
 

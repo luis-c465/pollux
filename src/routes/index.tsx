@@ -8,7 +8,7 @@ import type {
 import { Thread } from "#/components/assistant-ui/thread";
 import { ChatHeader } from "#/components/chat-header";
 import { ChatSidebar } from "#/components/chat-sidebar";
-import { GChatRuntimeProvider } from "#/components/runtime-provider";
+import { PolluxRuntimeProvider } from "#/components/runtime-provider";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -60,7 +60,7 @@ function App() {
 	};
 
 	return (
-		<GChatRuntimeProvider>
+		<PolluxRuntimeProvider>
 			<TooltipProvider>
 				<ResizablePanelGroup
 					id="chat-main-layout"
@@ -105,6 +105,6 @@ function App() {
 					</ResizablePanel>
 				</ResizablePanelGroup>
 			</TooltipProvider>
-		</GChatRuntimeProvider>
+		</PolluxRuntimeProvider>
 	);
 }

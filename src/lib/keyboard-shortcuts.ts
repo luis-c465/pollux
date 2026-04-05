@@ -1,10 +1,10 @@
 import { type Hotkey, validateHotkey } from "@tanstack/react-hotkeys";
 
-export const FOCUS_CHAT_INPUT_EVENT = "gchat-focus-chat-input";
-export const NEW_CHAT_EVENT = "gchat-new-chat";
-export const OPEN_MODEL_PICKER_EVENT = "gchat-open-model-picker";
-export const OPEN_THINKING_SELECTOR_EVENT = "gchat-open-thinking-selector";
-export const TOGGLE_GROUNDING_EVENT = "gchat-toggle-grounding";
+export const FOCUS_CHAT_INPUT_EVENT = "pollux-focus-chat-input";
+export const NEW_CHAT_EVENT = "pollux-new-chat";
+export const OPEN_MODEL_PICKER_EVENT = "pollux-open-model-picker";
+export const OPEN_THINKING_SELECTOR_EVENT = "pollux-open-thinking-selector";
+export const TOGGLE_GROUNDING_EVENT = "pollux-toggle-grounding";
 
 export type ShortcutBinding = Hotkey | "";
 

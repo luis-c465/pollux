@@ -10,16 +10,16 @@ import {
 } from "#/lib/keyboard-shortcuts";
 
 // localStorage keys
-export const SETTINGS_API_KEY = "gchat-api-key";
-export const SETTINGS_MODEL = "gchat-model";
-export const SETTINGS_SYSTEM_PROMPT = "gchat-system-prompt";
-export const SETTINGS_TITLE_MODEL = "gchat-title-model";
-export const SETTINGS_TITLE_SYSTEM_PROMPT = "gchat-title-system-prompt";
-export const SETTINGS_GROUNDING = "gchat-grounding";
-export const SETTINGS_THINKING_ENABLED = "gchat-thinking-enabled";
-export const SETTINGS_THINKING_BUDGET = "gchat-thinking-budget";
-export const SETTINGS_THINKING_LEVEL = "gchat-thinking-level";
-export const SETTINGS_SHORTCUTS = "gchat-shortcuts";
+export const SETTINGS_API_KEY = "pollux-api-key";
+export const SETTINGS_MODEL = "pollux-model";
+export const SETTINGS_SYSTEM_PROMPT = "pollux-system-prompt";
+export const SETTINGS_TITLE_MODEL = "pollux-title-model";
+export const SETTINGS_TITLE_SYSTEM_PROMPT = "pollux-title-system-prompt";
+export const SETTINGS_GROUNDING = "pollux-grounding";
+export const SETTINGS_THINKING_ENABLED = "pollux-thinking-enabled";
+export const SETTINGS_THINKING_BUDGET = "pollux-thinking-budget";
+export const SETTINGS_THINKING_LEVEL = "pollux-thinking-level";
+export const SETTINGS_SHORTCUTS = "pollux-shortcuts";
 
 export const DEFAULT_THINKING_BUDGET = 8192;
 export const MIN_THINKING_BUDGET = 0;
@@ -35,7 +35,7 @@ export type ThinkingLevel = "minimal" | "low" | "medium" | "high";
 // Custom event for same-tab storage notifications
 // ---------------------------------------------------------------------------
 
-const SETTINGS_CHANGE_EVENT = "gchat-settings-change";
+const SETTINGS_CHANGE_EVENT = "pollux-settings-change";
 
 function emitSettingsChange(key: string) {
 	window.dispatchEvent(new CustomEvent(SETTINGS_CHANGE_EVENT, { detail: key }));

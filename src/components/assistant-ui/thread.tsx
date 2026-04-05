@@ -110,11 +110,26 @@ const ThreadWelcome: FC = () => {
 			<div className="aui-thread-welcome-center flex w-full grow flex-col items-center justify-center">
 				<div className="aui-thread-welcome-message flex size-full flex-col justify-center px-4">
 					<h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-2xl duration-200">
-						Welcome to GChat
+						Welcome to {" "}
+						<span
+							style={{
+								background:
+									"linear-gradient(135deg, #ff3300 0%, #ff9900 50%, #ffff00 100%)",
+								WebkitBackgroundClip: "text",
+								WebkitTextFillColor: "transparent",
+								backgroundClip: "text",
+							}}
+						>
+							Pollux
+						</span>
 					</h1>
 					<p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-xl delay-75 duration-200">
-						Chat with Google Gemini models. Your conversations are stored
-						locally and never leave your browser.
+						Pollux is the brightest star in the Gemini constellation — and your
+						gateway to Google Gemini models, right in the browser.
+					</p>
+					<p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-sm delay-100 duration-200 mt-2">
+						Every conversation is stored locally on your computer and never
+						leaves your browser.
 					</p>
 					{!hasApiKey ? (
 						<div className="mt-3 flex items-center gap-3">
