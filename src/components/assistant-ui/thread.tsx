@@ -271,6 +271,20 @@ const MessageError: FC = () => {
 	);
 };
 
+const ThinkingIndicator: FC = () => {
+	const isWaiting = useAuiState(
+		(s) => s.message.status?.type === "running" && s.message.parts.length === 0,
+	);
+	if (!isWaiting) return null;
+	return (
+		<div className="flex items-center gap-1 px-1 py-2">
+			<span className="size-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.3s]" />
+			<span className="size-2 rounded-full bg-muted-foreground animate-bounce [animation-delay:-0.15s]" />
+			<span className="size-2 rounded-full bg-muted-foreground animate-bounce" />
+		</div>
+	);
+};
+
 const AssistantMessage: FC = () => {
 	return (
 		<MessagePrimitive.Root
@@ -278,6 +292,7 @@ const AssistantMessage: FC = () => {
 			data-role="assistant"
 		>
 			<div className="aui-assistant-message-content wrap-break-word px-2 text-foreground leading-relaxed">
+				<ThinkingIndicator />
 				<MessagePrimitive.Parts>
 					{({ part }) => {
 						if (part.type === "reasoning") return <Reasoning {...part} />;
