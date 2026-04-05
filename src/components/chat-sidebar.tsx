@@ -5,11 +5,13 @@ import { ThreadList } from "#/components/assistant-ui/thread-list";
 import { SettingsDialog } from "#/components/settings-dialog";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
+import { useSidebar } from "#/components/ui/sidebar";
 import { focusChatInput, NEW_CHAT_EVENT } from "#/lib/keyboard-shortcuts";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ChatSidebar() {
 	const newThreadButtonRef = useRef<HTMLButtonElement | null>(null);
+	const { isMobile, setOpenMobile } = useSidebar();
 
 	useEffect(() => {
 		const handleShortcut = (event: KeyboardEvent) => {
@@ -76,7 +78,20 @@ export function ChatSidebar() {
 			</div>
 
 			<ScrollArea className="min-h-0 flex-1 max-w-full">
-				<ThreadList />
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: event delegation wrapper for mobile sidebar close */}
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard events are handled by the interactive thread item buttons inside */}
+				<div
+					onClick={(e) => {
+						if (
+							isMobile &&
+							(e.target as HTMLElement).closest(".aui-thread-list-item-trigger")
+						) {
+							setOpenMobile(false);
+						}
+					}}
+				>
+					<ThreadList />
+				</div>
 			</ScrollArea>
 
 			<div className="border-t p-2">

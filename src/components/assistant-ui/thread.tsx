@@ -110,7 +110,7 @@ const ThreadWelcome: FC = () => {
 			<div className="aui-thread-welcome-center flex w-full grow flex-col items-center justify-center">
 				<div className="aui-thread-welcome-message flex size-full flex-col justify-center px-4">
 					<h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both font-semibold text-2xl duration-200">
-						Welcome to {" "}
+						Welcome to{" "}
 						<span
 							style={{
 								background:
@@ -167,13 +167,13 @@ const ThreadSuggestions: FC = () => {
 
 const ThreadSuggestionItem: FC<{ prompt: string }> = ({ prompt }) => {
 	return (
-		<div className="aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 @md:nth-[n+3]:block nth-[n+3]:hidden animate-in fill-mode-both duration-200">
+		<div className="aui-thread-welcome-suggestion-display fade-in slide-in-from-bottom-2 animate-in fill-mode-both duration-200">
 			<ThreadPrimitive.Suggestion prompt={prompt} send asChild>
 				<Button
 					variant="ghost"
-					className="aui-thread-welcome-suggestion h-auto w-full @md:flex-col flex-wrap items-start justify-start gap-1 rounded-3xl border bg-background px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
+					className="aui-thread-welcome-suggestion h-auto w-full flex-col items-start justify-start gap-1 rounded-3xl border bg-background px-4 py-3 text-left text-sm transition-colors hover:bg-muted"
 				>
-					<span className="aui-thread-welcome-suggestion-text-1 font-medium">
+					<span className="aui-thread-welcome-suggestion-text-1 line-clamp-2 w-full break-words font-medium">
 						{prompt}
 					</span>
 				</Button>
