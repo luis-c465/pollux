@@ -1,47 +1,14 @@
 import { ThreadListPrimitive } from "@assistant-ui/react";
 import { PlusIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
 import { ThreadList } from "#/components/assistant-ui/thread-list";
 import { SettingsDialog } from "#/components/settings-dialog";
 import ThemeToggle from "#/components/ThemeToggle";
 import { Button } from "#/components/ui/button";
 import { useSidebar } from "#/components/ui/sidebar";
-import { focusChatInput, NEW_CHAT_EVENT } from "#/lib/keyboard-shortcuts";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ChatSidebar() {
-	const newThreadButtonRef = useRef<HTMLButtonElement | null>(null);
 	const { isMobile, setOpenMobile } = useSidebar();
-
-	useEffect(() => {
-		const handleShortcut = (event: KeyboardEvent) => {
-			const isMeta = event.metaKey || event.ctrlKey;
-			if (!isMeta || !event.shiftKey) return;
-			if (event.key.toLowerCase() !== "n") return;
-
-			event.preventDefault();
-			newThreadButtonRef.current?.click();
-		};
-
-		window.addEventListener("keydown", handleShortcut);
-		return () => {
-			window.removeEventListener("keydown", handleShortcut);
-		};
-	}, []);
-
-	useEffect(() => {
-		const handleNewChat = () => {
-			newThreadButtonRef.current?.click();
-			setTimeout(() => {
-				focusChatInput();
-			}, 50);
-		};
-
-		window.addEventListener(NEW_CHAT_EVENT, handleNewChat);
-		return () => {
-			window.removeEventListener(NEW_CHAT_EVENT, handleNewChat);
-		};
-	}, []);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground">
@@ -67,7 +34,6 @@ export function ChatSidebar() {
 				</div>
 				<ThreadListPrimitive.New asChild>
 					<Button
-						ref={newThreadButtonRef}
 						variant="secondary"
 						className="h-9 justify-start gap-2 rounded-lg px-2.5 text-sm"
 						title="New Chat (Ctrl/Cmd+Shift+N)"

@@ -19,6 +19,7 @@ import {
 import { Sidebar, SidebarProvider, useSidebar } from "#/components/ui/sidebar";
 import { TooltipProvider } from "#/components/ui/tooltip";
 import { useAppHotkeys } from "#/hooks/use-app-hotkeys";
+import { useNewChatHandler } from "#/hooks/use-new-chat-handler";
 
 export const Route = createFileRoute("/")({ component: App });
 
@@ -29,6 +30,7 @@ function AppContent() {
 	const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null);
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 	useAppHotkeys();
+	useNewChatHandler();
 
 	const { isMobile, toggleSidebar: toggleMobileSidebar } = useSidebar();
 
