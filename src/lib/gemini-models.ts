@@ -14,11 +14,11 @@ export interface GeminiModel {
 
 export const GEMINI_MODELS: readonly GeminiModel[] = [
 	{
-		id: "gemini-3-flash-preview",
-		name: "Gemini 3 Flash",
+		id: "gemini-3.1-pro-preview",
+		name: "Gemini 3.1 Pro",
 		provider: "Google",
 		group: "Gemini 3",
-		description: "Fast and efficient for most tasks",
+		description: "Most capable model for complex reasoning and creative tasks",
 		supportsVision: true,
 		supportsAttachments: true,
 		supportsThinking: true,
@@ -35,6 +35,19 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		supportsVision: true,
 		supportsAttachments: true,
 		supportsThinking: false,
+		maxTokens: 1_048_576,
+		contextWindow: 1_048_576,
+	},
+	{
+		id: "gemini-3-flash-preview",
+		name: "Gemini 3 Flash",
+		provider: "Google",
+		group: "Gemini 3",
+		description: "Fast and efficient for most tasks",
+		supportsVision: true,
+		supportsAttachments: true,
+		supportsThinking: true,
+		thinkingType: "level",
 		maxTokens: 1_048_576,
 		contextWindow: 1_048_576,
 	},
@@ -56,7 +69,7 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 		name: "Gemini 2.5 Pro",
 		provider: "Google",
 		group: "Gemini 2.5",
-		description: "Most capable model for complex reasoning",
+		description: "Capable model for complex reasoning",
 		supportsVision: true,
 		supportsAttachments: true,
 		supportsThinking: true,
@@ -78,7 +91,7 @@ export const GEMINI_MODELS: readonly GeminiModel[] = [
 	},
 ];
 
-export const DEFAULT_MODEL = "gemini-2.5-flash";
+export const DEFAULT_MODEL = "gemini-3-flash-preview";
 
 export const isGeminiModel = (modelId: string): boolean => {
 	return GEMINI_MODELS.some((model) => model.id === modelId);
