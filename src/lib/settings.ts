@@ -16,6 +16,7 @@ export const SETTINGS_SYSTEM_PROMPT = "pollux-system-prompt";
 export const SETTINGS_TITLE_MODEL = "pollux-title-model";
 export const SETTINGS_TITLE_SYSTEM_PROMPT = "pollux-title-system-prompt";
 export const SETTINGS_GROUNDING = "pollux-grounding";
+export const SETTINGS_GROUNDING_THRESHOLD = "pollux-grounding-threshold";
 export const SETTINGS_THINKING_ENABLED = "pollux-thinking-enabled";
 export const SETTINGS_THINKING_BUDGET = "pollux-thinking-budget";
 export const SETTINGS_THINKING_LEVEL = "pollux-thinking-level";
@@ -24,6 +25,9 @@ export const SETTINGS_SHORTCUTS = "pollux-shortcuts";
 export const DEFAULT_THINKING_BUDGET = 8192;
 export const MIN_THINKING_BUDGET = 0;
 export const MAX_THINKING_BUDGET = 32768;
+export const DEFAULT_GROUNDING_THRESHOLD = 0.3;
+export const MIN_GROUNDING_THRESHOLD = 0;
+export const MAX_GROUNDING_THRESHOLD = 1;
 export const DEFAULT_THINKING_LEVEL = "medium" as const;
 export const DEFAULT_TITLE_MODEL = "gemini-3.1-flash-lite-preview";
 export const DEFAULT_TITLE_SYSTEM_PROMPT =
@@ -135,6 +139,36 @@ export function getGroundingEnabled(): boolean {
 export function setGroundingEnabled(enabled: boolean): void {
 	localStorage.setItem(SETTINGS_GROUNDING, String(enabled));
 	emitSettingsChange(SETTINGS_GROUNDING);
+}
+
+const clampGroundingThreshold = (value: number): number => {
+	if (!Number.isFinite(value)) {
+		return DEFAULT_GROUNDING_THRESHOLD;
+	}
+
+	const clamped = Math.min(
+		MAX_GROUNDING_THRESHOLD,
+		Math.max(MIN_GROUNDING_THRESHOLD, value),
+	);
+	return Number(clamped.toFixed(2));
+};
+
+export function getGroundingThreshold(): number {
+	const stored = localStorage.getItem(SETTINGS_GROUNDING_THRESHOLD);
+	if (!stored) {
+		return DEFAULT_GROUNDING_THRESHOLD;
+	}
+
+	const parsed = Number.parseFloat(stored);
+	return clampGroundingThreshold(parsed);
+}
+
+export function setGroundingThreshold(value: number): void {
+	localStorage.setItem(
+		SETTINGS_GROUNDING_THRESHOLD,
+		String(clampGroundingThreshold(value)),
+	);
+	emitSettingsChange(SETTINGS_GROUNDING_THRESHOLD);
 }
 
 // ---------------------------------------------------------------------------
@@ -274,6 +308,7 @@ export interface Settings {
 	titleModel: string;
 	titleSystemPrompt: string;
 	groundingEnabled: boolean;
+	groundingThreshold: number;
 	thinkingEnabled: boolean;
 	thinkingBudget: number;
 	thinkingLevel: ThinkingLevel;
@@ -289,6 +324,7 @@ function readSettings(): Settings {
 		titleModel: getTitleModel(),
 		titleSystemPrompt: getTitleSystemPrompt(),
 		groundingEnabled: getGroundingEnabled(),
+		groundingThreshold: getGroundingThreshold(),
 		thinkingEnabled: getThinkingEnabled(),
 		thinkingBudget: getThinkingBudget(),
 		thinkingLevel: getThinkingLevel(),
@@ -313,6 +349,7 @@ function subscribe(callback: () => void): () => void {
 			e.key === SETTINGS_TITLE_MODEL ||
 			e.key === SETTINGS_TITLE_SYSTEM_PROMPT ||
 			e.key === SETTINGS_GROUNDING ||
+			e.key === SETTINGS_GROUNDING_THRESHOLD ||
 			e.key === SETTINGS_THINKING_ENABLED ||
 			e.key === SETTINGS_THINKING_BUDGET ||
 			e.key === SETTINGS_THINKING_LEVEL ||
@@ -344,6 +381,7 @@ function getServerSnapshot(): Settings {
 		titleModel: DEFAULT_TITLE_MODEL,
 		titleSystemPrompt: DEFAULT_TITLE_SYSTEM_PROMPT,
 		groundingEnabled: false,
+		groundingThreshold: DEFAULT_GROUNDING_THRESHOLD,
 		thinkingEnabled: false,
 		thinkingBudget: DEFAULT_THINKING_BUDGET,
 		thinkingLevel: DEFAULT_THINKING_LEVEL,
@@ -395,6 +433,11 @@ export function useTitleSystemPrompt(): [string, (prompt: string) => void] {
 export function useGroundingEnabled(): [boolean, (enabled: boolean) => void] {
 	const settings = useSettings();
 	return [settings.groundingEnabled, useCallback(setGroundingEnabled, [])];
+}
+
+export function useGroundingThreshold(): [number, (value: number) => void] {
+	const settings = useSettings();
+	return [settings.groundingThreshold, useCallback(setGroundingThreshold, [])];
 }
 
 export function useThinkingEnabled(): [boolean, (enabled: boolean) => void] {
