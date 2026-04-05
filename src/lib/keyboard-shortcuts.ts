@@ -1,6 +1,7 @@
 import { type Hotkey, validateHotkey } from "@tanstack/react-hotkeys";
 
 export const FOCUS_CHAT_INPUT_EVENT = "gchat-focus-chat-input";
+export const NEW_CHAT_EVENT = "gchat-new-chat";
 export const OPEN_MODEL_PICKER_EVENT = "gchat-open-model-picker";
 export const OPEN_THINKING_SELECTOR_EVENT = "gchat-open-thinking-selector";
 export const TOGGLE_GROUNDING_EVENT = "gchat-toggle-grounding";
@@ -8,6 +9,7 @@ export const TOGGLE_GROUNDING_EVENT = "gchat-toggle-grounding";
 export type ShortcutBinding = Hotkey | "";
 
 export interface ShortcutBindings {
+	newChat: ShortcutBinding;
 	focusInput: ShortcutBinding;
 	openModelPicker: ShortcutBinding;
 	openThinking: ShortcutBinding;
@@ -25,6 +27,13 @@ export interface ShortcutDefinition {
 }
 
 export const SHORTCUT_DEFINITIONS: readonly ShortcutDefinition[] = [
+	{
+		action: "newChat",
+		label: "New chat",
+		description: "Create a new chat and move focus to the main chat input.",
+		eventName: NEW_CHAT_EVENT,
+		defaultHotkey: "Alt+N",
+	},
 	{
 		action: "openModelPicker",
 		label: "Select model",
@@ -64,6 +73,7 @@ export const DEFAULT_SHORTCUT_BINDINGS: ShortcutBindings =
 			return accumulator;
 		},
 		{
+			newChat: "",
 			focusInput: "",
 			openModelPicker: "",
 			openThinking: "",
@@ -84,6 +94,10 @@ export function normalizeShortcutBindings(value: unknown): ShortcutBindings {
 			: {};
 
 	return dedupeShortcutBindings({
+		newChat: normalizeShortcutBinding(
+			rawBindings.newChat,
+			DEFAULT_SHORTCUT_BINDINGS.newChat,
+		),
 		focusInput: normalizeShortcutBinding(
 			rawBindings.focusInput,
 			DEFAULT_SHORTCUT_BINDINGS.focusInput,
