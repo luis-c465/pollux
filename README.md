@@ -1,10 +1,10 @@
-# Pollux
+<h1 align="left"><img src="assets/star.svg" width="36" height="36" style="vertical-align:middle;" /> Pollux</h1>
 
 A frontend-only chat application for Google Gemini. All conversations and settings are stored locally in your browser — no backend, no account required.
 
 **[Live Demo](https://luis-c465.github.io/pollux/)**
 
-<!-- screenshot -->
+![Pollux screenshot](assets/photo.png)
 
 ## Features
 
