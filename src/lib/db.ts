@@ -279,6 +279,7 @@ export const createThread = async (
 	};
 
 	await db.put("threads", entry);
+	bumpSearchIndexVersion();
 	return entry;
 };
 
@@ -302,6 +303,7 @@ export const updateThread = async (
 
 	await tx.store.put(nextThread);
 	await tx.done;
+	bumpSearchIndexVersion();
 	return nextThread;
 };
 
@@ -357,6 +359,7 @@ export const deleteThread = async (id: string): Promise<void> => {
 	);
 
 	await tx.done;
+	bumpSearchIndexVersion();
 };
 
 export const getMessagesByThreadId = async (
@@ -445,6 +448,7 @@ export const addMessage = async (
 
 	await tx.done;
 
+	bumpSearchIndexVersion();
 	return message;
 };
 
@@ -534,46 +538,28 @@ export type SearchableThread = {
 
 type ContentPart = { type: string; text?: string };
 
+// ---------------------------------------------------------------------------
+// Search index invalidation — a cheap in-memory counter that the search worker
+// can poll to decide whether its cached index is stale.
+// ---------------------------------------------------------------------------
+
+let searchIndexVersion = 0;
+
+/** Bump the version after any data mutation that affects search results. */
+export function bumpSearchIndexVersion(): void {
+	searchIndexVersion++;
+}
+
+/** Returns the current version so the worker can compare against its snapshot. */
+export function getSearchIndexVersion(): number {
+	return searchIndexVersion;
+}
+
 /** Extracts plain text from a JSON-stringified content array. */
-const extractTextFromContent = (content: string): string => {
+export const extractTextFromContent = (content: string): string => {
 	const parts = jsonParse<ContentPart[]>(content, []);
 	return parts
 		.filter((part) => part.type === "text" && typeof part.text === "string")
 		.map((part) => part.text as string)
 		.join(" ");
-};
-
-/**
- * Loads all threads and their messages from IndexedDB, returning a flat array
- * of SearchableThread objects suitable for fuzzy search indexing.
- * Only extracts text-type content parts from user and assistant messages.
- */
-export const loadSearchableThreads = async (): Promise<SearchableThread[]> => {
-	const db = await getDB();
-
-	const [threads, allMessages] = await Promise.all([
-		getAllThreads(),
-		db.getAll("messages"),
-	]);
-
-	// Group message text by threadId
-	const textByThread = new Map<string, string[]>();
-	for (const message of allMessages) {
-		if (message.role !== "user" && message.role !== "assistant") continue;
-		const text = extractTextFromContent(message.content);
-		if (!text.trim()) continue;
-		const existing = textByThread.get(message.threadId);
-		if (existing) {
-			existing.push(text);
-		} else {
-			textByThread.set(message.threadId, [text]);
-		}
-	}
-
-	return threads.map((thread) => ({
-		threadId: thread.id,
-		title: thread.title,
-		textContent: textByThread.get(thread.id)?.join(" ") ?? "",
-		updatedAt: thread.updatedAt,
-	}));
 };
