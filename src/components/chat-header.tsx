@@ -1,7 +1,9 @@
 import { useAuiState } from "@assistant-ui/react";
-import { PanelLeftIcon } from "lucide-react";
+import { PanelLeftIcon, PlusIcon, SettingsIcon } from "lucide-react";
+import { openSettingsDialog } from "#/components/settings-dialog";
 import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
+import { NEW_CHAT_EVENT } from "#/lib/keyboard-shortcuts";
 
 type ChatHeaderProps = {
 	onToggleSidebar: () => void;
@@ -22,10 +24,10 @@ export function ChatHeader({
 
 	return (
 		<header className="relative flex h-12 items-center border-b px-4">
-			<div className="z-10 flex items-center gap-2">
+			<div className="z-10 flex items-center gap-0.5">
 				<Button
 					variant="ghost"
-					size="icon"
+					size="icon-sm"
 					onClick={onToggleSidebar}
 					aria-label="Toggle sidebar"
 					title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
@@ -33,6 +35,28 @@ export function ChatHeader({
 					<PanelLeftIcon className="size-4" />
 				</Button>
 				<Separator orientation="vertical" className="h-4" />
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={() => {
+						window.dispatchEvent(new Event(NEW_CHAT_EVENT));
+					}}
+					aria-label="New chat"
+					title="New Chat"
+				>
+					<PlusIcon className="size-4" />
+				</Button>
+			</div>
+			<div className="z-10 ml-auto">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={openSettingsDialog}
+					aria-label="Open settings"
+					title="Settings"
+				>
+					<SettingsIcon className="size-4" />
+				</Button>
 			</div>
 			<div className="pointer-events-none absolute inset-x-0 flex justify-center px-24">
 				<p className="max-w-full truncate font-medium text-foreground text-sm">
