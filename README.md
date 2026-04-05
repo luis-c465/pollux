@@ -1,240 +1,110 @@
-Welcome to your new TanStack Start app! 
+# Pollux
 
-# Getting Started
+A frontend-only chat application for Google Gemini. All conversations and settings are stored locally in your browser — no backend, no account required.
 
-To run this application:
+**[Live Demo](https://example.com)**
+
+<!-- screenshot -->
+
+## Features
+
+- **Multiple Gemini models** — Gemini 2.0 Flash, 2.5 Flash, 2.5 Pro, and the 3.x preview series
+- **Streaming responses** with an adaptive typewriter effect
+- **Thinking / reasoning traces** — configurable budget and verbosity for supported models
+- **Google Search grounding** — give the model access to up-to-date web results
+- **File & image attachments** — upload documents and images directly in the composer
+- **Markdown rendering** — streaming-aware with syntax highlighting via Shiki
+- **Thread management** — multiple conversations persisted in IndexedDB
+- **Customizable keyboard shortcuts** — rebind common actions from the settings dialog
+- **PWA support** — installable as a standalone app
+- **Light / dark theme**
+- **Privacy-first** — API key and chat history never leave your device
+
+## Getting Started
+
+### Prerequisites
+
+- [Bun](https://bun.sh) v1.x
+- A [Google Gemini API key](https://aistudio.google.com/apikey)
+
+### Install & run
 
 ```bash
+git clone https://github.com/your-username/pollux.git
+cd pollux
 bun install
-bun --bun run dev
+bun --bun run dev        # dev server on http://localhost:3000
 ```
 
-# Building For Production
+### Set your API key
 
-To build this application for production:
+Open the app, click the **Settings** button in the sidebar, and paste your Gemini API key into the API Key field. The key is saved to `localStorage` and never sent anywhere except directly to the Gemini API.
+
+## Tech Stack
+
+- [React 19](https://react.dev) + [TanStack Start](https://tanstack.com/start) (SPA mode)
+- [Vite 7](https://vitejs.dev) with the React Compiler
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [Shadcn UI](https://ui.shadcn.com) + [Radix UI](https://www.radix-ui.com)
+- [Assistant UI](https://www.assistant-ui.com) — chat primitives and runtime
+- [Vercel AI SDK](https://sdk.vercel.ai) + [`@ai-sdk/google`](https://www.npmjs.com/package/@ai-sdk/google)
+- [Zustand](https://zustand-demo.pmnd.rs) — global state
+- [idb](https://github.com/jakearchibald/idb) — IndexedDB thread/message storage
+- [Streamdown](https://streamdown.ai) — streaming Markdown renderer
+- [Biome](https://biomejs.dev) — linter & formatter
+
+## Project Structure
+
+```
+src/
+  components/
+    assistant-ui/     # Chat thread, thread list, markdown, reasoning, sources
+    ui/               # Shadcn UI primitives
+    chat-header.tsx   # Header with sidebar toggle
+    chat-sidebar.tsx  # Sidebar with thread list and settings
+    runtime-provider.tsx  # Assistant UI runtime wiring
+    settings-dialog.tsx   # Settings modal (API key, model, shortcuts, …)
+  hooks/
+    use-app-hotkeys.ts    # Keyboard shortcut bindings
+    use-mobile.ts         # Responsive breakpoint hook
+  lib/
+    db.ts                 # IndexedDB schema and operations
+    gemini-adapter.ts     # Gemini API adapter (streaming, thinking, grounding)
+    gemini-models.ts      # Model definitions and capabilities
+    settings.ts           # localStorage-backed settings store
+    typewriter.ts         # Adaptive typewriter streaming effect
+  routes/
+    __root.tsx            # Root layout
+    index.tsx             # Main chat page
+  styles.css              # Tailwind CSS entry point
+```
+
+## Development
 
 ```bash
-bun --bun run build
+bun --bun run dev          # Dev server (port 3000)
+bun --bun run build        # Production build
+bun --bun run preview      # Preview production build
+bun --bun run test         # Run tests (Vitest)
+bun --bun run typecheck    # Type-check with tsgo
+bun --bun run check        # Lint + format + organize imports (Biome)
+bunx biome check --fix     # Auto-fix lint and formatting issues
 ```
 
-## Testing
-
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
-
-```bash
-bun --bun run test
-```
-
-## Styling
-
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `bun install @tailwindcss/vite tailwindcss -D`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-bun --bun run lint
-bun --bun run format
-bun --bun run check
-```
-
-
-# Paraglide i18n
-
-This add-on wires up ParaglideJS for localized routing and message formatting.
-
-- Messages live in `project.inlang/messages`.
-- URLs are localized through the Paraglide Vite plugin and router `rewrite` hooks.
-- Run the dev server or build to regenerate the `src/paraglide` outputs.
-
-
-## Shadcn
-
-Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
-
-```bash
-pnpm dlx shadcn@latest add button
-```
-
-
-## T3Env
-
-- You can use T3Env to add type safety to your environment variables.
-- Add Environment variables to the `src/env.mjs` file.
-- Use the environment variables in your code.
-
-### Usage
-
-```ts
-import { env } from "#/env";
-
-console.log(env.VITE_APP_TITLE);
-```
-
-
-
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+## Settings
+
+All configuration lives in the in-app **Settings** dialog:
+
+| Setting | Description |
+|---|---|
+| API Key | Your Google Gemini API key (stored in `localStorage`) |
+| Model | Active Gemini model |
+| System Prompt | Custom instructions prepended to every conversation |
+| Thinking | Enable reasoning traces and set the thinking budget |
+| Google Search | Toggle grounding to allow the model to search the web |
+| Title Generation | Model used to auto-generate thread titles |
+| Keyboard Shortcuts | Rebind actions like new chat, model picker, and sidebar toggle |
+
+## Privacy
+
+All data — chat history, attachments, and your API key — is stored entirely in your browser (`localStorage` and `IndexedDB`). Nothing is sent to any server other than the Gemini API itself.
