@@ -1,9 +1,14 @@
 import { useAuiState } from "@assistant-ui/react";
-import { PanelLeftIcon, PlusIcon, SettingsIcon } from "lucide-react";
+import {
+	PanelLeftIcon,
+	PlusIcon,
+	SearchIcon,
+	SettingsIcon,
+} from "lucide-react";
 import { openSettingsDialog } from "#/components/settings-dialog";
 import { Button } from "#/components/ui/button";
 import { Separator } from "#/components/ui/separator";
-import { NEW_CHAT_EVENT } from "#/lib/keyboard-shortcuts";
+import { NEW_CHAT_EVENT, OPEN_SEARCH_EVENT } from "#/lib/keyboard-shortcuts";
 
 type ChatHeaderProps = {
 	onToggleSidebar: () => void;
@@ -33,6 +38,18 @@ export function ChatHeader({
 					title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
 				>
 					<PanelLeftIcon className="size-4" />
+				</Button>
+				<Separator orientation="vertical" className="h-4" />
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={() => {
+						window.dispatchEvent(new Event(OPEN_SEARCH_EVENT));
+					}}
+					aria-label="Search chats"
+					title="Search (Alt+F)"
+				>
+					<SearchIcon className="size-4" />
 				</Button>
 				<Separator orientation="vertical" className="h-4" />
 				<Button
