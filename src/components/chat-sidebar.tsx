@@ -47,7 +47,11 @@ export function ChatSidebar() {
 		<div className="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground">
 			<div className="flex flex-col gap-3 border-b p-2">
 				<div className="flex items-center gap-2 px-2 py-1">
-					<img src="/favicon.svg" alt="Pollux" className="size-5 shrink-0" />
+					<img
+						src={`${import.meta.env.BASE_URL}favicon.svg`}
+						alt="Pollux"
+						className="size-5 shrink-0"
+					/>
 					<span
 						className="font-semibold text-sm"
 						style={{

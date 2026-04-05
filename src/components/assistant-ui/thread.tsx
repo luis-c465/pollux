@@ -113,7 +113,11 @@ const ThreadWelcome: FC = () => {
 						<span>Welcome to </span>
 						<span className="pollux-text inline-flex">
 							Pollux
-							<img src="/star.svg" alt="Pollux" className="size-8" />
+							<img
+								src={`${import.meta.env.BASE_URL}star.svg`}
+								alt="Pollux"
+								className="size-8"
+							/>
 						</span>
 					</h1>
 					<p className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-muted-foreground text-xl delay-75 duration-200">
