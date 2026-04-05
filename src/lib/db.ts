@@ -3,6 +3,7 @@ import type {
 	ThreadMessage,
 } from "@assistant-ui/react";
 import { type DBSchema, type IDBPDatabase, openDB } from "idb";
+import { getSearchWorker } from "#/lib/search-worker-client";
 
 export type ThreadStatus = "regular" | "archived";
 
@@ -279,7 +280,7 @@ export const createThread = async (
 	};
 
 	await db.put("threads", entry);
-	bumpSearchIndexVersion();
+	getSearchWorker().indexThread(entry.id).catch(console.error);
 	return entry;
 };
 
@@ -303,7 +304,7 @@ export const updateThread = async (
 
 	await tx.store.put(nextThread);
 	await tx.done;
-	bumpSearchIndexVersion();
+	getSearchWorker().indexThread(id).catch(console.error);
 	return nextThread;
 };
 
@@ -359,7 +360,7 @@ export const deleteThread = async (id: string): Promise<void> => {
 	);
 
 	await tx.done;
-	bumpSearchIndexVersion();
+	getSearchWorker().removeThread(id).catch(console.error);
 };
 
 export const getMessagesByThreadId = async (
@@ -448,7 +449,7 @@ export const addMessage = async (
 
 	await tx.done;
 
-	bumpSearchIndexVersion();
+	getSearchWorker().indexThread(threadId).catch(console.error);
 	return message;
 };
 
@@ -522,44 +523,4 @@ export const deleteAttachmentsByThreadId = async (
 	const keys = await tx.store.index("threadId").getAllKeys(threadId);
 	await Promise.all(keys.map((key) => tx.store.delete(key)));
 	await tx.done;
-};
-
-// ---------------------------------------------------------------------------
-// Full-text search helpers
-// ---------------------------------------------------------------------------
-
-export type SearchableThread = {
-	threadId: string;
-	title: string;
-	/** All user + assistant text content joined with spaces. */
-	textContent: string;
-	updatedAt: number;
-};
-
-type ContentPart = { type: string; text?: string };
-
-// ---------------------------------------------------------------------------
-// Search index invalidation — a cheap in-memory counter that the search worker
-// can poll to decide whether its cached index is stale.
-// ---------------------------------------------------------------------------
-
-let searchIndexVersion = 0;
-
-/** Bump the version after any data mutation that affects search results. */
-export function bumpSearchIndexVersion(): void {
-	searchIndexVersion++;
-}
-
-/** Returns the current version so the worker can compare against its snapshot. */
-export function getSearchIndexVersion(): number {
-	return searchIndexVersion;
-}
-
-/** Extracts plain text from a JSON-stringified content array. */
-export const extractTextFromContent = (content: string): string => {
-	const parts = jsonParse<ContentPart[]>(content, []);
-	return parts
-		.filter((part) => part.type === "text" && typeof part.text === "string")
-		.map((part) => part.text as string)
-		.join(" ");
 };

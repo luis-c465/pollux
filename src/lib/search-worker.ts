@@ -1,5 +1,5 @@
-import uFuzzy from "@leeoniya/ufuzzy";
 import * as Comlink from "comlink";
+import { Charset, Document } from "flexsearch";
 import { type DBSchema, openDB } from "idb";
 
 // ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ type PolluxDBSchema = DBSchema & {
 };
 
 // ---------------------------------------------------------------------------
-// DB access (worker gets its own connection)
+// DB access (worker gets its own connection to pollux-db)
 // ---------------------------------------------------------------------------
 
 const DB_NAME = "pollux-db";
@@ -79,7 +79,6 @@ function getDB() {
 	if (!dbPromise) {
 		dbPromise = openDB<PolluxDBSchema>(DB_NAME, DB_VERSION, {
 			// No upgrade here — the main thread handles migrations.
-			// If the DB doesn't exist yet this is a no-op.
 		});
 	}
 	return dbPromise;
@@ -109,13 +108,13 @@ function extractTextFromContent(content: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Searchable thread type + cached index
+// FlexSearch document type
 // ---------------------------------------------------------------------------
 
-type SearchableThread = {
-	threadId: string;
+type SearchDoc = {
+	id: string;
 	title: string;
-	textContent: string;
+	content: string;
 	updatedAt: number;
 };
 
@@ -128,24 +127,28 @@ export type SearchResult = {
 	updatedAt: number;
 };
 
-let cachedData: SearchableThread[] | null = null;
-let cachedTitles: string[] = [];
-let cachedContents: string[] = [];
+// ---------------------------------------------------------------------------
+// FlexSearch index
+//
+// Typed as `any` because after mount() the generic S doesn't update and
+// operations that TypeScript types as sync actually return Promises at
+// runtime.  Using `any` avoids misleading type-level guarantees.
+// ---------------------------------------------------------------------------
+
+// biome-ignore lint/suspicious/noExplicitAny: FlexSearch generic limitation after mount()
+let searchIndex: any = null;
+let initPromise: Promise<void> | null = null;
 
 // ---------------------------------------------------------------------------
-// uFuzzy instance
+// HTML helpers — XSS-safe highlighting
+//
+// We use ASCII control characters (\x01 / \x02) as FlexSearch highlight
+// markers.  After escaping HTML in the entire string (neutralising any
+// user-supplied markup), we replace the control chars with <mark> tags.
 // ---------------------------------------------------------------------------
 
-const uf = new uFuzzy({
-	intraIns: 1,
-	interIns: 3,
-	interLft: 1,
-	interRgt: 1,
-});
-
-// ---------------------------------------------------------------------------
-// HTML helpers
-// ---------------------------------------------------------------------------
+const MARK_START = "\x01";
+const MARK_END = "\x02";
 
 function escapeHtml(text: string): string {
 	return text
@@ -155,186 +158,269 @@ function escapeHtml(text: string): string {
 		.replace(/"/g, "&quot;");
 }
 
-function applyHighlight(text: string, ranges: number[]): string {
-	if (!ranges.length) return escapeHtml(text);
-	return uFuzzy.highlight(text, ranges, (part, matched) =>
-		matched
-			? `<mark class="bg-yellow-200 dark:bg-yellow-700 rounded-sm">${escapeHtml(part)}</mark>`
-			: escapeHtml(part),
-	) as string;
+const MARK_OPEN = '<mark class="bg-yellow-200 dark:bg-yellow-700 rounded-sm">';
+const MARK_CLOSE = "</mark>";
+
+function highlightToHtml(highlighted: string): string {
+	const escaped = escapeHtml(highlighted);
+	return escaped
+		.replaceAll(MARK_START, MARK_OPEN)
+		.replaceAll(MARK_END, MARK_CLOSE);
+}
+
+// ---------------------------------------------------------------------------
+// Build a SearchDoc for a given thread by reading from pollux-db
+// ---------------------------------------------------------------------------
+
+async function buildSearchDoc(threadId: string): Promise<SearchDoc | null> {
+	const db = await getDB();
+	const thread = await db.get("threads", threadId);
+	if (!thread) return null;
+
+	const messages = await db.getAllFromIndex("messages", "threadId", threadId);
+	const textParts: string[] = [];
+	for (const msg of messages) {
+		if (msg.role !== "user" && msg.role !== "assistant") continue;
+		const text = extractTextFromContent(msg.content);
+		if (text.trim()) textParts.push(text);
+	}
+
+	return {
+		id: thread.id,
+		title: thread.title,
+		content: textParts.join(" "),
+		updatedAt: thread.updatedAt,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Custom IDB persistence for FlexSearch
+//
+// FlexSearch's built-in IndexedDB adapter uses `window.indexedDB` which is
+// undefined in Web Workers.  We roll our own: a simple key-value store in a
+// separate `pollux-search` IDB database (using the `idb` library, which
+// correctly uses the bare `indexedDB` global available in workers).
+//
+// Persistence is done via FlexSearch's export(handler)/import(key, data) API:
+//   - saveIndex()  — calls index.export() and writes each chunk to IDB
+//   - loadIndex()  — reads all chunks from IDB and feeds them to index.import()
+// ---------------------------------------------------------------------------
+
+type SearchIndexSchema = DBSchema & {
+	chunks: {
+		key: string;
+		value: string;
+	};
+};
+
+const SEARCH_DB_NAME = "pollux-search";
+const SEARCH_DB_VERSION = 1;
+
+let searchDbPromise: ReturnType<typeof openDB<SearchIndexSchema>> | undefined;
+
+function getSearchDB() {
+	if (!searchDbPromise) {
+		searchDbPromise = openDB<SearchIndexSchema>(
+			SEARCH_DB_NAME,
+			SEARCH_DB_VERSION,
+			{
+				upgrade(db) {
+					db.createObjectStore("chunks");
+				},
+			},
+		);
+	}
+	return searchDbPromise;
+}
+
+/** Persist the entire in-memory index to our IDB store. */
+async function saveIndex(): Promise<void> {
+	const sdb = await getSearchDB();
+	const chunks: Array<[string, string]> = [];
+
+	// Document.export() is synchronous — it calls the handler once per chunk
+	// and returns undefined when done (no sentinel call).
+	searchIndex.export((key: string, data: string) => {
+		if (data !== undefined) {
+			chunks.push([key, data]);
+		}
+	});
+
+	const tx = sdb.transaction("chunks", "readwrite");
+	// Clear stale chunks before writing the new snapshot
+	await tx.store.clear();
+	await Promise.all(chunks.map(([key, data]) => tx.store.put(data, key)));
+	await tx.done;
+}
+
+/** Restore the in-memory index from our IDB store. */
+async function loadPersistedIndex(): Promise<boolean> {
+	const sdb = await getSearchDB();
+	const keys = await sdb.getAllKeys("chunks");
+	if (!keys.length) return false;
+
+	const tx = sdb.transaction("chunks", "readonly");
+	await Promise.all(
+		keys.map(async (key) => {
+			const data = await tx.store.get(key);
+			if (data !== undefined) {
+				searchIndex.import(key, data);
+			}
+		}),
+	);
+	await tx.done;
+	return true;
+}
+
+function createIndex(): Document<SearchDoc> {
+	return new Document<SearchDoc>({
+		tokenize: "forward",
+		encoder: Charset.LatinBalance,
+		document: {
+			id: "id",
+			index: [
+				{ field: "title", resolution: 9 },
+				{ field: "content", resolution: 3 },
+			],
+			store: true,
+		},
+	});
+}
+
+async function doRebuild(): Promise<void> {
+	searchIndex = createIndex();
+
+	const db = await getDB();
+	const [threads, allMessages] = await Promise.all([
+		db.getAll("threads"),
+		db.getAll("messages"),
+	]);
+
+	// Group message text by threadId
+	const textByThread = new Map<string, string[]>();
+	for (const message of allMessages) {
+		if (message.role !== "user" && message.role !== "assistant") continue;
+		const text = extractTextFromContent(message.content);
+		if (!text.trim()) continue;
+		const existing = textByThread.get(message.threadId);
+		if (existing) {
+			existing.push(text);
+		} else {
+			textByThread.set(message.threadId, [text]);
+		}
+	}
+
+	for (const thread of threads) {
+		const doc: SearchDoc = {
+			id: thread.id,
+			title: thread.title,
+			content: textByThread.get(thread.id)?.join(" ") ?? "",
+			updatedAt: thread.updatedAt,
+		};
+		searchIndex.add(doc);
+	}
+
+	await saveIndex();
+}
+
+async function doInit(): Promise<void> {
+	searchIndex = createIndex();
+
+	// Try to restore from persisted IDB chunks first
+	const restored = await loadPersistedIndex();
+
+	if (!restored) {
+		// No persisted index — build from scratch
+		await doRebuild();
+	}
+}
+
+async function ensureInitialized(): Promise<void> {
+	if (!initPromise) {
+		initPromise = doInit();
+	}
+	await initPromise;
 }
 
 // ---------------------------------------------------------------------------
 // Worker API
 // ---------------------------------------------------------------------------
 
-const SNIPPET_RADIUS = 80;
 const MAX_RESULTS = 25;
 
 const workerApi = {
-	/**
-	 * Load all threads + messages from IndexedDB and rebuild the in-memory
-	 * search index. Runs entirely in the worker thread.
-	 */
-	async loadIndex(): Promise<number> {
-		const db = await getDB();
-
-		const [threads, allMessages] = await Promise.all([
-			(async () => {
-				const tx = db.transaction("threads", "readonly");
-				const index = tx.store.index("updatedAt");
-				const result: StoredThread[] = [];
-				let cursor = await index.openCursor(null, "prev");
-				while (cursor) {
-					result.push(cursor.value);
-					cursor = await cursor.continue();
-				}
-				await tx.done;
-				return result;
-			})(),
-			db.getAll("messages"),
-		]);
-
-		// Group message text by threadId
-		const textByThread = new Map<string, string[]>();
-		for (const message of allMessages) {
-			if (message.role !== "user" && message.role !== "assistant") continue;
-			const text = extractTextFromContent(message.content);
-			if (!text.trim()) continue;
-			const existing = textByThread.get(message.threadId);
-			if (existing) {
-				existing.push(text);
-			} else {
-				textByThread.set(message.threadId, [text]);
-			}
-		}
-
-		cachedData = threads.map((thread) => ({
-			threadId: thread.id,
-			title: thread.title,
-			textContent: textByThread.get(thread.id)?.join(" ") ?? "",
-			updatedAt: thread.updatedAt,
-		}));
-
-		cachedTitles = cachedData.map((t) => t.title);
-		cachedContents = cachedData.map((t) => t.textContent);
-
-		return cachedData.length;
+	/** Mount persistent storage, auto-rebuild if stale. */
+	async init(): Promise<void> {
+		await ensureInitialized();
 	},
 
-	/**
-	 * Run fuzzy search against the cached index. Returns pre-rendered HTML
-	 * so the main thread does zero string processing.
-	 */
-	search(query: string): SearchResult[] {
-		if (!cachedData) return [];
+	/** Add or update a single thread in the search index. */
+	async indexThread(threadId: string): Promise<void> {
+		await ensureInitialized();
+		const doc = await buildSearchDoc(threadId);
+		if (doc) {
+			searchIndex.update(doc);
+			await saveIndex();
+		}
+	},
+
+	/** Remove a thread from the search index. */
+	async removeThread(threadId: string): Promise<void> {
+		await ensureInitialized();
+		searchIndex.remove(threadId);
+		await saveIndex();
+	},
+
+	/** Full rebuild from pollux-db. */
+	async rebuildIndex(): Promise<void> {
+		await ensureInitialized();
+		await doRebuild();
+	},
+
+	/** Run a search query and return pre-rendered HTML results. */
+	async search(query: string): Promise<SearchResult[]> {
+		await ensureInitialized();
 		const trimmed = query.trim();
 		if (!trimmed) return [];
 
-		// Search titles (2x weight) and content (1x weight) separately
-		const [titleIdxs, titleInfo, titleOrder] = uf.search(cachedTitles, trimmed);
-		const [contentIdxs, contentInfo, contentOrder] = uf.search(
-			cachedContents,
-			trimmed,
-		);
+		const results = searchIndex.search(trimmed, {
+			limit: MAX_RESULTS,
+			enrich: true,
+			merge: true,
+			suggest: true,
+			highlight: {
+				template: `${MARK_START}$1${MARK_END}`,
+				boundary: { before: 50, after: 50, total: 120 },
+				ellipsis: "…",
+			},
+		});
 
-		// Accumulate scores per threadId
-		const scoreMap = new Map<
-			string,
-			{
-				score: number;
-				titleRanges: number[];
-				contentRanges: number[];
-				thread: SearchableThread;
-			}
-		>();
+		// results is MergedDocumentSearchResults<SearchDoc>
+		// Each item: { id, doc?, field?, highlight? }
+		// biome-ignore lint/suspicious/noExplicitAny: FlexSearch merged result type
+		return (results as any[]).map((item) => {
+			const doc: SearchDoc | null = item.doc;
+			const highlights: Record<string, string> | undefined = item.highlight;
 
-		if (titleIdxs && titleOrder) {
-			for (let r = 0; r < titleOrder.length; r++) {
-				const orderIdx = titleOrder[r];
-				if (orderIdx === undefined) continue;
-				const dataIdx = titleIdxs[orderIdx];
-				if (dataIdx === undefined) continue;
-				const thread = cachedData[dataIdx];
-				if (!thread) continue;
-				const intra = titleInfo?.intraIns[orderIdx] ?? 0;
-				const rankBonus = Math.max(0, MAX_RESULTS - r);
-				const titleRanges = titleInfo?.ranges[orderIdx] ?? [];
-				const entry = scoreMap.get(thread.threadId);
-				if (entry) {
-					entry.score += (rankBonus + 10 - intra) * 2;
-					if (!entry.titleRanges.length) entry.titleRanges = titleRanges;
-				} else {
-					scoreMap.set(thread.threadId, {
-						score: (rankBonus + 10 - intra) * 2,
-						titleRanges,
-						contentRanges: [],
-						thread,
-					});
-				}
-			}
-		}
-
-		if (contentIdxs && contentOrder) {
-			for (let r = 0; r < contentOrder.length; r++) {
-				const orderIdx = contentOrder[r];
-				if (orderIdx === undefined) continue;
-				const dataIdx = contentIdxs[orderIdx];
-				if (dataIdx === undefined) continue;
-				const thread = cachedData[dataIdx];
-				if (!thread) continue;
-				const intra = contentInfo?.intraIns[orderIdx] ?? 0;
-				const rankBonus = Math.max(0, MAX_RESULTS - r);
-				const contentRanges = contentInfo?.ranges[orderIdx] ?? [];
-				const entry = scoreMap.get(thread.threadId);
-				if (entry) {
-					entry.score += rankBonus + 10 - intra;
-					if (!entry.contentRanges.length) entry.contentRanges = contentRanges;
-				} else {
-					scoreMap.set(thread.threadId, {
-						score: rankBonus + 10 - intra,
-						titleRanges: [],
-						contentRanges,
-						thread,
-					});
-				}
-			}
-		}
-
-		// Sort and slice
-		const sorted = [...scoreMap.values()].sort((a, b) => b.score - a.score);
-		const top = sorted.slice(0, MAX_RESULTS);
-
-		return top.map(({ thread, titleRanges, contentRanges }) => {
-			const titleHtml = applyHighlight(thread.title, titleRanges);
+			const title = doc?.title ?? String(item.id);
+			const titleHtml = highlights?.title
+				? highlightToHtml(highlights.title)
+				: escapeHtml(title);
 
 			let snippet = "";
-			if (contentRanges.length && thread.textContent) {
-				const firstStart = contentRanges[0] ?? 0;
-				const snippetStart = Math.max(0, firstStart - SNIPPET_RADIUS);
-				const snippetEnd = Math.min(
-					thread.textContent.length,
-					firstStart + SNIPPET_RADIUS,
-				);
-				const snippetText = thread.textContent.slice(snippetStart, snippetEnd);
-				const shiftedRanges = contentRanges.map((n) =>
-					Math.max(0, n - snippetStart),
-				);
-				const snippetHtml = applyHighlight(snippetText, shiftedRanges);
-				const prefix = snippetStart > 0 ? "\u2026" : "";
-				const suffix = snippetEnd < thread.textContent.length ? "\u2026" : "";
-				snippet = prefix + snippetHtml + suffix;
-			} else if (thread.textContent) {
-				snippet = escapeHtml(thread.textContent.slice(0, 120));
-				if (thread.textContent.length > 120) snippet += "\u2026";
+			if (highlights?.content) {
+				snippet = highlightToHtml(highlights.content);
+			} else if (doc?.content) {
+				snippet = escapeHtml(doc.content.slice(0, 120));
+				if (doc.content.length > 120) snippet += "\u2026";
 			}
 
 			return {
-				threadId: thread.threadId,
-				title: thread.title,
+				threadId: String(item.id),
+				title,
 				titleHtml,
 				snippet,
-				updatedAt: thread.updatedAt,
+				updatedAt: doc?.updatedAt ?? 0,
 			};
 		});
 	},

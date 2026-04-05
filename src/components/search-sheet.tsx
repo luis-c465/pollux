@@ -106,7 +106,6 @@ export function SearchSheet() {
 	const [query, setQuery] = useState("");
 	const [debouncedQuery, setDebouncedQuery] = useState("");
 	const [results, setResults] = useState<SearchResult[]>([]);
-	const [isLoading, setIsLoading] = useState(false);
 	const [activeIndex, setActiveIndex] = useState(0);
 	const inputRef = useRef<HTMLInputElement>(null);
 	const aui = useAui();
@@ -118,25 +117,19 @@ export function SearchSheet() {
 		return () => window.removeEventListener(OPEN_SEARCH_EVENT, handleOpen);
 	}, []);
 
-	// Pre-warm: load the search index in the worker on mount
+	// Pre-warm: mount persistent FlexSearch index in the worker on mount.
+	// The index is incrementally updated, so no reload needed on sheet open.
 	useEffect(() => {
-		getSearchWorker().loadIndex().catch(console.error);
+		getSearchWorker().init().catch(console.error);
 	}, []);
 
-	// Reload the index whenever the sheet opens (picks up new messages)
+	// Reset UI state when the sheet opens
 	useEffect(() => {
 		if (!open) return;
-
 		setQuery("");
 		setDebouncedQuery("");
 		setActiveIndex(0);
 		setResults([]);
-
-		setIsLoading(true);
-		getSearchWorker()
-			.loadIndex()
-			.catch(console.error)
-			.finally(() => setIsLoading(false));
 	}, [open]);
 
 	// Focus the input when the sheet opens (after animation)
@@ -238,11 +231,7 @@ export function SearchSheet() {
 					aria-label="Search results"
 					className="flex min-h-0 flex-1 flex-col overflow-y-auto p-2"
 				>
-					{isLoading ? (
-						<p className="px-3 py-4 text-center text-muted-foreground text-sm">
-							Loading…
-						</p>
-					) : !query.trim() ? (
+					{!query.trim() ? (
 						<p className="px-3 py-4 text-center text-muted-foreground text-sm">
 							Type to search across all your chats
 						</p>

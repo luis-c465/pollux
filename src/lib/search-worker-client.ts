@@ -9,8 +9,8 @@ let proxy: Comlink.Remote<SearchWorkerApi> | undefined;
 let worker: Worker | undefined;
 
 /**
- * Returns a Comlink proxy to the search worker. The worker (and its IDB
- * connection + uFuzzy instance) lives in a dedicated thread — all heavy
+ * Returns a Comlink proxy to the search worker. The worker (and its FlexSearch
+ * index + IndexedDB persistence) lives in a dedicated thread — all heavy
  * work happens off the main thread.
  */
 export function getSearchWorker(): Comlink.Remote<SearchWorkerApi> {
