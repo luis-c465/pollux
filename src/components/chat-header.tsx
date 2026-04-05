@@ -29,10 +29,10 @@ export function ChatHeader({
 
 	return (
 		<header className="relative flex h-12 items-center border-b px-4">
-			<div className="z-10 flex items-center gap-0.5">
+			<div className="z-10 flex items-center gap-1">
 				<Button
 					variant="ghost"
-					size="icon-sm"
+					size="icon-xs"
 					onClick={onToggleSidebar}
 					aria-label="Toggle sidebar"
 					title={sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
@@ -42,7 +42,7 @@ export function ChatHeader({
 				<Separator orientation="vertical" className="h-4" />
 				<Button
 					variant="ghost"
-					size="icon-sm"
+					size="icon-xs"
 					onClick={() => {
 						window.dispatchEvent(new Event(OPEN_SEARCH_EVENT));
 					}}
@@ -54,7 +54,7 @@ export function ChatHeader({
 				<Separator orientation="vertical" className="h-4" />
 				<Button
 					variant="ghost"
-					size="icon-sm"
+					size="icon-xs"
 					onClick={() => {
 						window.dispatchEvent(new Event(NEW_CHAT_EVENT));
 					}}
@@ -67,7 +67,7 @@ export function ChatHeader({
 			<div className="z-10 ml-auto">
 				<Button
 					variant="ghost"
-					size="icon-sm"
+					size="icon-xs"
 					onClick={openSettingsDialog}
 					aria-label="Open settings"
 					title="Settings"
