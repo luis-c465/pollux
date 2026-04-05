@@ -10,6 +10,7 @@ import { ChatHeader } from "#/components/chat-header";
 import { ChatSidebar } from "#/components/chat-sidebar";
 import { PolluxRuntimeProvider } from "#/components/runtime-provider";
 import { SearchSheet } from "#/components/search-sheet";
+import { SettingsDialog } from "#/components/settings-dialog";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -128,6 +129,7 @@ function App() {
 		<PolluxRuntimeProvider>
 			<TooltipProvider>
 				<SidebarProvider defaultOpen={false} className="h-full min-h-0">
+					<SettingsDialog showTrigger={false} />
 					<AppContent />
 				</SidebarProvider>
 			</TooltipProvider>

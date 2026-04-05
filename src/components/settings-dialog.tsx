@@ -51,7 +51,11 @@ export function openSettingsDialog() {
 	window.dispatchEvent(new CustomEvent(SETTINGS_OPEN_EVENT));
 }
 
-export function SettingsDialog() {
+export function SettingsDialog({
+	showTrigger = true,
+}: {
+	showTrigger?: boolean;
+} = {}) {
 	const settings = useSettings();
 	const [open, setOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState("general");
@@ -178,16 +182,18 @@ export function SettingsDialog() {
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground"
-					aria-label="Open settings"
-				>
-					<SettingsIcon className="size-4" />
-				</Button>
-			</DialogTrigger>
+			{showTrigger && (
+				<DialogTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-8 w-8 text-sidebar-foreground/70 hover:text-sidebar-foreground"
+						aria-label="Open settings"
+					>
+						<SettingsIcon className="size-4" />
+					</Button>
+				</DialogTrigger>
+			)}
 
 			<DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
 				<DialogHeader>
