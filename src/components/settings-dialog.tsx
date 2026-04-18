@@ -35,6 +35,7 @@ import {
 	getApiKey,
 	removeApiKey,
 	setApiKey,
+	setPriorityQueueEnabled,
 	setSelectedModel,
 	setSystemPrompt,
 	setThinkingEnabled,
@@ -390,6 +391,25 @@ export function SettingsDialog({
 										This model does not support configurable thinking.
 									</p>
 								) : null}
+							</section>
+
+							<section className="flex flex-col gap-3">
+								<div className="flex items-start justify-between gap-4">
+									<div className="space-y-1">
+										<h3 className="text-sm font-semibold">Priority Queue</h3>
+										<p className="text-xs text-muted-foreground leading-relaxed">
+											Use Gemini's priority service tier for lower latency
+											responses. Increases API costs by approximately 75-100%.
+										</p>
+									</div>
+									<Switch
+										checked={settings.priorityQueueEnabled}
+										onCheckedChange={(checked) =>
+											setPriorityQueueEnabled(checked)
+										}
+										aria-label="Toggle priority queue"
+									/>
+								</div>
 							</section>
 						</div>
 					</TabsContent>

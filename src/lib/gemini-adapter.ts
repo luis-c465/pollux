@@ -12,7 +12,11 @@ import {
 	getGeminiModel,
 	isGeminiModel,
 } from "@/lib/gemini-models";
-import { getGroundingEnabled, getThinkingSettings } from "@/lib/settings";
+import {
+	getGroundingEnabled,
+	getPriorityQueueEnabled,
+	getThinkingSettings,
+} from "@/lib/settings";
 import {
 	createTypewriterController,
 	detectRefreshRate,
@@ -487,6 +491,7 @@ export const geminiAdapter: ChatModelAdapter = {
 		const selectedModel = resolveSelectedModel(context.config?.modelName);
 		const systemInstruction = getStorageItem(SYSTEM_PROMPT_STORAGE_KEY)?.trim();
 		const groundingEnabled = getGroundingEnabled();
+		const priorityQueueEnabled = getPriorityQueueEnabled();
 		const thinkingConfig = resolveThinkingConfig(selectedModel);
 		const aiMessages = messages
 			.map((message) => toAiSdkMessage(message))
@@ -559,11 +564,12 @@ export const geminiAdapter: ChatModelAdapter = {
 				abortSignal,
 				model: google(selectedModel),
 				messages: aiMessages,
-				...(thinkingConfig
+				...(thinkingConfig || priorityQueueEnabled
 					? {
 							providerOptions: {
 								google: {
-									thinkingConfig,
+									...(thinkingConfig ? { thinkingConfig } : {}),
+									...(priorityQueueEnabled ? { serviceTier: "priority" } : {}),
 								},
 							},
 						}

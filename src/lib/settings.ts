@@ -21,6 +21,7 @@ export const SETTINGS_THINKING_ENABLED = "pollux-thinking-enabled";
 export const SETTINGS_THINKING_BUDGET = "pollux-thinking-budget";
 export const SETTINGS_THINKING_LEVEL = "pollux-thinking-level";
 export const SETTINGS_SHORTCUTS = "pollux-shortcuts";
+export const SETTINGS_PRIORITY_QUEUE = "pollux-priority-queue";
 
 export const DEFAULT_THINKING_BUDGET = 8192;
 export const MIN_THINKING_BUDGET = 0;
@@ -297,6 +298,19 @@ export function resetShortcutBindings(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Priority queue helpers
+// ---------------------------------------------------------------------------
+
+export function getPriorityQueueEnabled(): boolean {
+	return localStorage.getItem(SETTINGS_PRIORITY_QUEUE) === "true";
+}
+
+export function setPriorityQueueEnabled(enabled: boolean): void {
+	localStorage.setItem(SETTINGS_PRIORITY_QUEUE, String(enabled));
+	emitSettingsChange(SETTINGS_PRIORITY_QUEUE);
+}
+
+// ---------------------------------------------------------------------------
 // useSettings hook — reactive access via useSyncExternalStore
 // ---------------------------------------------------------------------------
 
@@ -313,6 +327,7 @@ export interface Settings {
 	thinkingBudget: number;
 	thinkingLevel: ThinkingLevel;
 	shortcuts: ShortcutBindings;
+	priorityQueueEnabled: boolean;
 }
 
 function readSettings(): Settings {
@@ -329,6 +344,7 @@ function readSettings(): Settings {
 		thinkingBudget: getThinkingBudget(),
 		thinkingLevel: getThinkingLevel(),
 		shortcuts: getShortcutBindings(),
+		priorityQueueEnabled: getPriorityQueueEnabled(),
 	};
 }
 
@@ -353,7 +369,8 @@ function subscribe(callback: () => void): () => void {
 			e.key === SETTINGS_THINKING_ENABLED ||
 			e.key === SETTINGS_THINKING_BUDGET ||
 			e.key === SETTINGS_THINKING_LEVEL ||
-			e.key === SETTINGS_SHORTCUTS
+			e.key === SETTINGS_SHORTCUTS ||
+			e.key === SETTINGS_PRIORITY_QUEUE
 		) {
 			cachedSettings = readSettings();
 			callback();
@@ -386,6 +403,7 @@ function getServerSnapshot(): Settings {
 		thinkingBudget: DEFAULT_THINKING_BUDGET,
 		thinkingLevel: DEFAULT_THINKING_LEVEL,
 		shortcuts: DEFAULT_SHORTCUT_BINDINGS,
+		priorityQueueEnabled: false,
 	};
 }
 
@@ -476,5 +494,16 @@ export function useShortcutBinding(
 			(hotkey: ShortcutBinding) => setShortcutBinding(action, hotkey),
 			[action],
 		),
+	];
+}
+
+export function usePriorityQueueEnabled(): [
+	boolean,
+	(enabled: boolean) => void,
+] {
+	const settings = useSettings();
+	return [
+		settings.priorityQueueEnabled,
+		useCallback(setPriorityQueueEnabled, []),
 	];
 }
